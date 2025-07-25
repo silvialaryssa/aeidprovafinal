@@ -1,3 +1,4 @@
+import csv
 from xml.parsers.expat import model
 from sklearn import pipeline
 import streamlit as st
@@ -130,6 +131,7 @@ def remover_outliers_iqr(df, colunas=None, threshold=1.5):
 # 🔧 Funções - Questão 1
 # =============================
 def q1_etapa1():
+    st.markdown("---")
     def exibir_dicionario_variaveis():
         st.markdown("### 📘 Dicionário de Variáveis")
         st.markdown("""
@@ -158,7 +160,7 @@ def q1_etapa1():
         | `sqft_lot15`      | Área dos terrenos vizinhos      | Média do tamanho dos lotes das 15 casas mais próximas                     |
             """)
         
-    st.subheader("🏠 Q1 - 1️⃣ Análise Descritiva dos Dados")
+    st.subheader("🏠 Q1 - 1 - Regressão Linear - Análise Descritiva dos Dados")
     exibir_dicionario_variaveis()
     uploaded_file = 'src/kc_house_data.csv'
 
@@ -254,7 +256,8 @@ def q1_etapa1():
     
 #
 def q1_etapa2():
-    st.subheader("🏠 Q1 - 2️⃣ Modelo de Regressão Linear")
+    st.markdown("---")
+    st.subheader("🏠 Q1 - 2 - Regressao lienar Modelo de Regressão Linear")
     st.info("Crie o modelo de regressão linear com métricas de desempenho.")
 
     df = st.session_state.get("kc_df")
@@ -322,6 +325,7 @@ def q1_etapa2():
         st.write(f"RMSE: {np.sqrt(mean_squared_error(y_test, y_pred)):.2f}")
 
 def q1_etapa3():
+    st.markdown("---")
     st.subheader("🏠 Q1 - 3️⃣ Interpretação dos Resultados")
     if "X_test" in st.session_state and "y_test" in st.session_state and "y_pred" in st.session_state:
         X = st.session_state["X_test"]
@@ -334,9 +338,8 @@ def q1_etapa3():
 
 
 def q1_etapa4():
+    st.markdown("---")
     st.subheader("🏠 Q1 - 4️⃣ Ajustes no Modelo")
-    
-
     df = st.session_state.get("kc_df")
     if df is None:
         st.warning("⚠️ Os dados ainda não foram carregados. Execute a Etapa 1 primeiro.")
@@ -491,12 +494,6 @@ def q1_etapa5():
 # 🔧 Funções - Questão 2
 # =============================
 
-
-
-# ===
-# função para pré-processamento
-# ====
-
 def criar_coluna_arrival_date(df):
     """
     Adiciona uma coluna 'arrival_date' ao DataFrame com a data de chegada em formato datetime,
@@ -518,7 +515,7 @@ def criar_coluna_arrival_date(df):
         df['arrival_date_day_of_month'].astype(str).str.zfill(2)
     )
     
-    st.write(df["arrival_date"])
+    #st.write(df["arrival_date"])
     
      # Cria coluna booking_date (data da reserva)
     df['booking_date'] = df['arrival_date'] - pd.to_timedelta(df['lead_time'], unit='D')
@@ -527,48 +524,18 @@ def criar_coluna_arrival_date(df):
     #variaves foram substituídas por arrival_date
 
     df = df.drop(columns=["arrival_date_year", "arrival_date_month", "arrival_date_week_number", "arrival_date_day_of_month"], errors='ignore')
-    
-   
-   
-
 
     return df
-
 
 def pre_processamento(df):
     """
     Realiza pré-processamento básico dos dados
     """
-    # Remove valores nulos
-    #df = df.dropna()
-    
     # Remove duplicatas
     df = df.drop_duplicates()
     df = criar_coluna_arrival_date(df)
     df.drop(columns=['arrival_month_num'], inplace=True)
     
-    
-    
-    
-    
-  
-
-    
-    # Converte tipos de dados se necessário
-    # aplicar dummies para variaveis categoricas
-    # quais variaveis categoricas para o dataset Hotel Booking Demand?
-    #cat_cols = ['hotel', 'meal', 'country', 'market_segment', 'distribution_channel', 'reserved_room_type', 'assigned_room_type', 'deposit_type', 'customer_type', 'reservation_status']
-
-    # exibir os tipos de dados das colunas
-    #st.write("### Tipos de Dados das Colunas")
-    #st.dataframe(df.dtypes)
-
-    #if cat_cols:
-     #   df = pd.get_dummies(df, columns=cat_cols, drop_first=True)  
-    # Converte colunas de data para datetime
-    #date_cols = df.select_dtypes(include=['object']).columns.tolist()
-    #for col in date_cols:
-    #    df[col] = pd.to_datetime(df[col], errors='coerce')
     return df
 
 
@@ -669,15 +636,59 @@ def q2_etapa1():
     st.markdown("### 📊 Estatísticas Descritivas")
     #st.dataframe(df2.describe())
     st.markdown("### 🧮 Mediana das Variáveis Numéricas")
-    #st.dataframe(df2.select_dtypes(include='number').median())
+    st.dataframe(df2.select_dtypes(include='number').median())
     
     # graficos de distribuição
-    st.markdown("### 📈 Distribuição de Variáveis")
+    cols_numericas = [
+        'lead_time', 'stays_in_weekend_nights', 'stays_in_week_nights', 'adults', 'children',
+        'babies', 'previous_cancellations', 'previous_bookings_not_canceled',
+        'booking_changes', 'days_in_waiting_list', 'adr',
+        'required_car_parking_spaces', 'total_of_special_requests'
+    ]
    
-    
+    st.markdown("### 📊 Histogramas das Variáveis Numéricas por Cancelamento")
+
+    charts = []
+    for col in cols_numericas:
+        chart = alt.Chart(df2).mark_bar(opacity=0.7).encode(
+            x=alt.X(f'{col}:Q', bin=alt.Bin(maxbins=30), title=col),
+            y=alt.Y('count()', title='Frequência'),
+            color=alt.Color('is_canceled:N', title='Cancelamento')
+        ).properties(
+            title=f'{col} - Distribuição por Cancelamento',
+            width=300,
+            height=250
+        )
+        charts.append(chart)
+
+    # Exibir os gráficos em 3 colunas
+    num_cols = 3
+    rows = [charts[i:i+num_cols] for i in range(0, len(charts), num_cols)]
+
+    for row in rows:
+        cols = st.columns(num_cols)
+        for col_chart, col_container in zip(row, cols):
+            with col_container:
+                st.altair_chart(col_chart, use_container_width=True)
+
+
     
 
 def q2_etapa2():
+    
+    from sklearn.pipeline import Pipeline
+    from sklearn.compose import ColumnTransformer
+    from sklearn.impute import SimpleImputer
+    from sklearn.preprocessing import StandardScaler, OneHotEncoder
+    from sklearn.linear_model import LogisticRegression
+       # graficar a distribuição da variável dependente
+    import plotly.express as px
+    # importar pandas como pd
+    import pandas as pd
+    import streamlit as st
+    import altair as alt
+    
+    
     st.subheader("🏨 Q2 - b) Modelo de Regressão Logística")
     st.info("Construa o modelo de regressão logística e avalie seu desempenho.")
 
@@ -685,15 +696,10 @@ def q2_etapa2():
     if df2 is None:
         st.warning("⚠️ Os dados ainda não foram carregados. Execute a Etapa 1 primeiro.")
         return
-
-    from sklearn.pipeline import Pipeline
-    from sklearn.compose import ColumnTransformer
-    from sklearn.impute import SimpleImputer
-    from sklearn.preprocessing import StandardScaler, OneHotEncoder
-    from sklearn.linear_model import LogisticRegression
-    
     
     y = df2['is_canceled']
+    X = df2.drop(columns='is_canceled')
+
     
         # Separe as features do tipo categórica e numérica
     cols_numericas = [
@@ -719,11 +725,7 @@ def q2_etapa2():
     # 1. Balanceamento das classes
     st.markdown("**Distribuição da variável dependente (is_canceled):**")
     st.dataframe(y.value_counts(normalize=True).rename("Proporção").to_frame())
-    
-    # graficar a distribuição da variável dependente
-    import plotly.express as px
-    # importar pandas como pd
-    import pandas as pd
+
     fig = px.pie(y.value_counts(normalize=True).rename("Proporção").to_frame(), 
                  values='Proporção', 
                  names=y.value_counts().index, 
@@ -731,6 +733,7 @@ def q2_etapa2():
                  color_discrete_sequence=px.colors.qualitative.Set2)    
     st.plotly_chart(fig, use_container_width=True)
     
+
    
    # se distribuição for desbalanceada, aplicar oversampling ou undersampling
     from imblearn.over_sampling import RandomOverSampler
@@ -738,9 +741,12 @@ def q2_etapa2():
     from imblearn.pipeline import Pipeline as ImbPipeline
     from collections import Counter
     # Verificar o balanceamento das classes
+    
+   
     counter = Counter(y)
     #st.write(f"Classes antes do balanceamento: {counter}")
     # Se a distribuição for desbalanceada, aplicar oversampling ou undersampling
+
     if counter[0] < counter[1]:
         st.warning("⚠️ Distribuição desbalanceada. Aplicando oversampling para balancear as classes.")
         
@@ -755,6 +761,24 @@ def q2_etapa2():
         undersample = RandomUnderSampler(sampling_strategy='majority', random_state=42)
         X_resampled, y_resampled = undersample.fit_resample(df2[cols_numericas + cols_categoricas], y)
        # st.write(f"Classes após undersampling: {Counter(y_resampled)}")
+       
+            # 3. Verificação de valores ausentes
+        # 3. Verificação de valores ausentes no dataset balanceado
+        st.markdown("**Valores ausentes nas colunas do dataset balanceado:**")
+        missing_values = X.isnull().sum()
+        missing_values = missing_values[missing_values > 0].sort_values(ascending=False)
+        if missing_values.empty:
+            st.success("✅ Não há valores ausentes nas colunas do dataset balanceado.")
+        else:
+            st.dataframe(missing_values.rename("Valores Ausentes").to_frame())
+            st.markdown("""
+            Optou-se pela remoção das variáveis `country`, `agent` e `company` do modelo devido à alta proporção 
+            de valores ausentes e à elevada cardinalidade dessas variáveis, que dificultariam o processamento e aumentariam 
+            o risco de overfitting. Em contrapartida, a variável `hotel` foi mantida por sintetizar informações relevantes
+            sobre o tipo de hospedagem e o perfil do hóspede, sendo capaz de capturar parte da variabilidade representada 
+            pelas variáveis excluídas. Dessa forma, o modelo permanece mais simples, robusto e eficiente, sem perda significativa de informação.
+            """)
+
    
     else:
         st.success("✅ Distribuição balanceada. Não é necessário aplicar oversampling ou undersampling.")
@@ -796,23 +820,7 @@ def q2_etapa2():
 
 
     
-    # 3. Verificação de valores ausentes
-    # 3. Verificação de valores ausentes no dataset balanceado
-    st.markdown("**Valores ausentes nas colunas do dataset balanceado:**")
-    missing_values = X_resampled.isnull().sum()
-    missing_values = missing_values[missing_values > 0].sort_values(ascending=False)
-    if missing_values.empty:
-        st.success("✅ Não há valores ausentes nas colunas do dataset balanceado.")
-    else:
-        st.dataframe(missing_values.rename("Valores Ausentes").to_frame())
-        st.markdown("""
-        Optou-se pela remoção das variáveis `country`, `agent` e `company` do modelo devido à alta proporção 
-        de valores ausentes e à elevada cardinalidade dessas variáveis, que dificultariam o processamento e aumentariam 
-        o risco de overfitting. Em contrapartida, a variável `hotel` foi mantida por sintetizar informações relevantes
-        sobre o tipo de hospedagem e o perfil do hóspede, sendo capaz de capturar parte da variabilidade representada 
-        pelas variáveis excluídas. Dessa forma, o modelo permanece mais simples, robusto e eficiente, sem perda significativa de informação.
-        """)
-
+  
  
  
     # verificar linearidade entre as variáveis numéricas
@@ -868,11 +876,6 @@ def q2_etapa2():
         ('logreg', LogisticRegression(max_iter=1000))
     ])
 
-        
-    # Seleção dos dados de entrada
-    #features = cols_numericas + cols_categoricas
-    #X = df2[features]
-    #y = df2['is_canceled']
 
     # Split
     from sklearn.model_selection import train_test_split
@@ -909,15 +912,9 @@ def q2_etapa2():
     st.markdown("### 📊 Coeficientes do Modelo de Regressão Logística")
     st.dataframe(coef_table) 
     # Salve o pipeline e dados de teste no session_state
-    #st.session_state["model"] = pipeline
-    #st.session_state["X_test"] = X_test
-    #st.session_state["y_test"] = y_test
-    #st.session_state["y_pred"] = y_pred  # Pode ser útil para as próximas etapas!
-    
-    
+    st.session_state["model"] = pipeline
+   
     from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, confusion_matrix, classification_report
-
-    # Supondo que você já tem: y_test, y_pred
 
     # Calcular métricas
     acc = accuracy_score(y_test, y_pred)
@@ -940,10 +937,27 @@ def q2_etapa2():
 
     st.markdown("**Relatório de Classificação:**")
     st.text(report)
+    
+    
+    # Tabela de métricas
+    metricas = pd.DataFrame({
+        "Métrica": ["Acurácia", "Precisão", "Recall", "F1-score"],
+        "Valor": [0.721, 0.708, 0.754, 0.730],
+        "Interpretação": [
+            "O modelo acertou 72,1% das previsões totais (canceladas e não canceladas).",
+            "Das reservas que o modelo previu como canceladas, 70,8% realmente foram.",
+            "O modelo identificou corretamente 75,4% das reservas que foram canceladas.",
+            "Média harmônica entre precisão e recall, indicando bom equilíbrio."
+        ]
+    })
+  
+    st.markdown("Explicação")
+    st.dataframe(metricas)
 
      
      
 def q2_etapa3():
+        st.markdown("---")
         st.subheader("🏨 Q2 - c) Análise das Features")
         st.info("Analise a importância das variáveis no modelo de regressão logística.")
 
@@ -958,7 +972,7 @@ def q2_etapa3():
             return
 
         model = st.session_state["model"]
-        X_test = st.session_state["X_test"]
+        #X_test = st.session_state["X_test"]
 
         feature_names = model.named_steps['prep'].get_feature_names_out()
         coef = model.named_steps['logreg'].coef_[0]
@@ -1000,6 +1014,7 @@ def q2_etapa3():
         
         
 def q2_etapa4():
+    st.markdown("---")
     st.subheader("🏨 Q2 - d) Justificativa do Método")
     st.info("Discuta a escolha do modelo de regressão logística.")
 
@@ -1013,7 +1028,7 @@ def q2_etapa4():
         return
 
     model = st.session_state["model"]
-    X_test = st.session_state["X_test"]
+ 
 
     # Justificativa do método
     st.markdown("""
@@ -1026,23 +1041,333 @@ def q2_etapa4():
 
 
 
- 
-
-
 # =============================
 # 🔧 Funções - Questão 3
 # =============================
 def q3_etapa1():
     st.subheader("🌍 Q3 - a) Análise Descritiva")
     st.info("Explore dados por país, quantidade e preço.")
+        
+        # Carregar a planilha (ou use df se já estiver carregado)
+    @st.cache_data
+    def carregar_dados():
+        return pd.read_csv("src/planilha_combinada.csv")
+
+    df = carregar_dados()
+    
+    #adicionar df na sessão do streamlit
+    st.session_state["df3"] = df
+
+    # Total de linhas
+    total_linhas = len(df)
+
+    # Calcular valores ausentes
+    valores_ausentes = df.isnull().sum()
+    percentual_ausentes = (valores_ausentes / total_linhas) * 100
+
+    # Juntar em um único DataFrame para exibição
+    tabela_ausentes = pd.DataFrame({
+        'Valores Ausentes': valores_ausentes,
+        'Percentual (%)': percentual_ausentes.round(2)
+    })
+
+    # Filtrar apenas colunas com pelo menos 1 valor ausente
+    tabela_ausentes = tabela_ausentes[tabela_ausentes['Valores Ausentes'] > 0]
+
+    # Exibir
+    print("📉 Valores Ausentes por Coluna:")
+    print(tabela_ausentes.sort_values(by="Percentual (%)", ascending=False))
+    
+    # mostrar valores ausentes no streamlit
+    st.markdown("### 📉 Valores Ausentes por Coluna")
+    st.dataframe(tabela_ausentes.sort_values(by="Percentual (%)", ascending=False))
+    
+    
+    # Exibir o DataFrame original
+    st.markdown("### 📊 Preview dos Dados")
+    st.dataframe(df)
+    # Exibir estatísticas descritivas
+    st.markdown("### 📈 Estatísticas Descritivas")
+    st.dataframe(df.describe())
+    
+    
+    # Amostragem de 100 mil registros para acelerar a visualização
+   # df_amostra = df.sample(n=100_000, random_state=42)
+
+    #vendas_pais = df_amostra.groupby("Country")["Price"].sum().reset_index()
+    #vendas_pais = vendas_pais.sort_values(by="Price", ascending=False)
+
+    st.markdown("### 📊 Distribuição de Vendas por País (com amostragem)")
+    st.dataframe(df.groupby("Country")["Price"].sum().reset_index().sort_values(by="Price", ascending=False))
+    
+    #graficar a distribuição de vendas por país
+    import plotly.express as px
+    fig = px.bar(df.groupby("Country")["Price"].sum().reset_index().sort_values(by="Price", ascending=False)
+                 , x="Country", y="Price", title="Distribuição de Vendas por País (Amostragem)",
+                 color="Price", color_continuous_scale=px.colors.sequential.Plasma)
+    
+    # Exibir a distribuição de vendas por país
+    st.plotly_chart(fig)
+
+    st.markdown("### 📊 Análise de Quantidade e Preço por País")  
+    # Agrupar por país e calcular a soma de quantidade e preço
+    vendas_pais_quantidade = df.groupby("Country")["Quantity"].sum().reset_index()
+    vendas_pais_preco = df.groupby("Country")["Price"].sum().reset_index()
+    vendas_pais_quantidade = vendas_pais_quantidade.sort_values(by="Quantity", ascending=False)
+    vendas_pais_preco = vendas_pais_preco.sort_values(by="Price", ascending=False)
+    st.dataframe(vendas_pais_quantidade)
+    st.dataframe(vendas_pais_preco)
+    # Gráfico de barras da quantidade de vendas por país
+    fig_quantidade = px.bar(vendas_pais_quantidade, x="Country", y="Quantity", title="Quantidade de Vendas por País (Amostragem)",
+                            color="Quantity", color_continuous_scale=px.colors.sequential.Viridis)
+
+    st.plotly_chart(fig_quantidade)
+    
+    
+    # stockcod por país
+    vendas_pais_stockcode = df.groupby("Country")["StockCode"].nunique().reset_index()
+    vendas_pais_stockcode = vendas_pais_stockcode.sort_values(by="StockCode", ascending=False)
+    st.markdown("### 📊 Quantidade de Produtos Vendidos por País")
+    st.dataframe(vendas_pais_stockcode)
+    
+    # grafico stats.probplot de quantidade de produtos vendidos por país
+    # use probplot para verificar a distribuição
+    import scipy.stats as stats
+    import matplotlib.pyplot as plt
+    import seaborn as sns
+   
+
+    # Verifique se a coluna 'StockCode' é numérica
+    vendas_pais_stockcode["StockCode"] = pd.to_numeric(vendas_pais_stockcode["StockCode"], errors="coerce")
+
+    # Criação da figura
+    fig_stockcode = plt.figure(figsize=(10, 6))
+
+    # Gráfico Q-Q plot (verificação de normalidade)
+    stats.probplot(vendas_pais_stockcode["StockCode"].dropna(), dist="norm", plot=plt)
+    plt.title("Distribuição de Produtos Vendidos por País")
+
+    # Renderização no Streamlit
+    st.pyplot(fig_stockcode)
+    
+    # Suponha que você já tenha o DataFrame `df`
+    # Certifique-se de que 'Price' é numérico
+    df["Price"] = pd.to_numeric(df["Price"], errors="coerce")
+
+    # Criação da figura
+    fig_price = plt.figure(figsize=(10, 6))
+
+    # Gráfico Q-Q plot para verificar normalidade do preço
+    stats.probplot(df["Price"].dropna(), dist="norm", plot=plt)
+    plt.title("Q-Q Plot - Distribuição do Preço dos Produtos")
+
+    # Exibir no Streamlit
+    st.pyplot(fig_price)
+        
+    
+    #qplot do preço por país
+
+    # Exibir a quantidade de vendas por país
+   # st.markdown("### 📊 Quantidade de Vendas por País")
+   # st.dataframe(df.groupby("Country")["Quantity"].sum().reset_index())
+    
+    # Gráfico de barras da quantidade de vendas por país
+    #fig = px.bar(df, x="Country", y="Quantity", title="Quantidade de Vendas por País",
+    #             color="Quantity", color_continuous_scale=px.colors.sequential.Viridis)
+    #st.plotly_chart(fig)
+    
+    # medias de quantidade de produtos vendidos por país
+    #st.markdown("### 📊 Média de Quantidade Vendida por País")
+    #st.dataframe(df.groupby("Country")["Quantity"].mean().reset_index())
+    # Gráfico de barras da média de quantidade vendida por país
+    #fig = px.bar(df, x="Country", y="Quantity", title="Média de Quantidade Vendida por País",
+    #             color="Quantity", color_continuous_scale=px.colors.sequential.Cividis)
+    #st.plotly_chart(fig)
+    
+
+    # Exibir a média de preço por país
+    #st.markdown("### 📊 Média de Preço por País")
+   # st.dataframe(df.groupby("Country")["Price"].mean().reset_index())
+    # Gráfico de barras da média de preço por país
+    #fig = px.bar(df, x="Country", y="Price", title="Média de Preço por País",
+    #             color="Price", color_continuous_scale=px.colors.sequential.Inferno)
+    #st.plotly_chart(fig)
+    
+
+
+    # Exibir a quantidade de vendas por categoria
+    #st.markdown("### 📊 Quantidade de Vendas por Categoria")
+    #st.dataframe(df.groupby("Category")["Quantity"].sum().reset_index())
+    # Gráfico de barras da quantidade de vendas por categoria
+    #fig = px.bar(df, x="Category", y="Quantity", title="Quantidade de Vendas por Categoria",
+    #             color="Quantity", color_continuous_scale=px.colors.sequential.Viridis)
+    #st.plotly_chart(fig)
+
+
+
+
 
 def q3_etapa2():
     st.subheader("🌍 Q3 - b) ANOVA entre Países")
     st.info("Apresente F, p-valor e interprete o teste.")
+    
+    import pandas as pd
+    import statsmodels.api as sm
+    from statsmodels.formula.api import ols
+   
+    #recuperar df3 da sessão do streamlit
+    df3 = st.session_state.get("df3")
+    if df3 is None:
+        st.warning("⚠️ Os dados ainda não foram carregados. Execute a Etapa 1 primeiro.")
+        return
+
+
+    import statsmodels.api as sm
+    import statsmodels.formula.api as smf
+    import pandas as pd
+
+    # Exemplo: carregando o DataFrame (substitua pelo seu)
+    # df = pd.read_excel("planilha_combinada_amostrada.xlsx")
+
+    st.header("📊 ANOVA - Comparação de Médias por País")
+
+    # ANOVA para Quantity ~ Country
+    modelo_q = smf.ols("Quantity ~ C(Country)", data=df3).fit()
+    anova_q = sm.stats.anova_lm(modelo_q, typ=2)
+
+    # ANOVA para Price ~ Country
+    modelo_p = smf.ols("Price ~ C(Country)", data=df3).fit()
+    anova_p = sm.stats.anova_lm(modelo_p, typ=2)
+
+    # Resultado Quantity
+    st.subheader("🔹 ANOVA: Quantity por País")
+    st.dataframe(anova_q)
+
+    f_q = anova_q.loc["C(Country)", "F"]
+    p_q = anova_q.loc["C(Country)", "PR(>F)"]
+
+    if p_q < 0.001:
+        st.success(f"Resultado: influência **muito significativa** (F = {f_q:.2f}, p < 0.001)")
+    elif p_q < 0.05:
+        st.info(f"Resultado: influência **significativa** (F = {f_q:.2f}, p = {p_q:.4f})")
+    else:
+        st.warning(f"Resultado: **sem influência significativa** (F = {f_q:.2f}, p = {p_q:.4f})")
+
+    # Resultado Price
+    st.subheader("🔹 ANOVA: Price por País")
+    st.dataframe(anova_p)
+
+    f_p = anova_p.loc["C(Country)", "F"]
+    p_p = anova_p.loc["C(Country)", "PR(>F)"]
+
+    if p_p < 0.001:
+        st.success(f"Resultado: influência **muito significativa** (F = {f_p:.2f}, p < 0.001)")
+    elif p_p < 0.05:
+        st.info(f"Resultado: influência **significativa** (F = {f_p:.2f}, p = {p_p:.4f})")
+    else:
+        st.warning(f"Resultado: **sem influência significativa** (F = {f_p:.2f}, p = {p_p:.4f})")
+    
+
+def verificar_pressupostos_anova(df, var_resposta, fator_categ='Country'):
+    """
+    Verifica os pressupostos da ANOVA:
+    - Normalidade dos resíduos (Shapiro-Wilk + Q-Q plot)
+    - Homocedasticidade (Breusch-Pagan + gráfico de resíduos)
+
+    Parâmetros:
+    - df: DataFrame com os dados
+    - var_resposta: variável numérica dependente (ex: 'Quantity', 'Price')
+    - fator_categ: variável categórica (ex: 'Country')
+
+    Exibe resultados e interpretações no Streamlit.
+    """
+    import streamlit as st
+    import statsmodels.formula.api as smf
+    import statsmodels.api as sm
+    from statsmodels.stats.diagnostic import het_breuschpagan
+    from scipy.stats import shapiro
+    import matplotlib.pyplot as plt
+    import seaborn as sns
+
+    st.header(f"🔍 Verificação dos Pressupostos da ANOVA - {var_resposta} ~ {fator_categ}")
+
+    # Ajustar modelo
+    formula = f"{var_resposta} ~ C({fator_categ})"
+    modelo = smf.ols(formula, data=df).fit()
+    residuos = modelo.resid
+    valores_previstos = modelo.fittedvalues
+
+    violou_normalidade = False
+    violou_homocedasticidade = False            
+
+    # 1️⃣ Normalidade dos resíduos
+    st.subheader("1️⃣ Normalidade dos Resíduos (Q-Q Plot + Shapiro-Wilk)")
+
+    fig1 = plt.figure()
+    sm.qqplot(residuos, line='s', ax=plt.gca())
+    plt.title("Q-Q Plot dos Resíduos")
+    st.pyplot(fig1)
+
+    shapiro_stat, shapiro_p = shapiro(residuos)
+    if shapiro_p < 0.05:
+        violou_normalidade = True
+        st.warning(f"❗ Shapiro-Wilk indica violação da normalidade (p = {shapiro_p:.4f})")
+    else:
+        st.success(f"✅ Resíduos seguem distribuição normal (Shapiro-Wilk p = {shapiro_p:.4f})")
+
+    # 2️⃣ Homocedasticidade com Breusch-Pagan
+    st.subheader("2️⃣ Homocedasticidade (Breusch-Pagan + Gráfico de Resíduos)")
+
+    fig2 = plt.figure(figsize=(4, 3))  # largura = 4, altura = 3 polegadas
+    sns.scatterplot(x=valores_previstos, y=residuos, s=10)  # pontos menores (opcional)
+    plt.axhline(0, color='red', linestyle='--')
+    plt.xlabel("Valores Previstos", fontsize=8)
+    plt.ylabel("Resíduos", fontsize=8)
+    plt.title("Resíduos vs. Valores Previstos", fontsize=10)
+    plt.xticks(fontsize=7)
+    plt.yticks(fontsize=7)
+    plt.tight_layout()  # para garantir que nada fique cortado
+
+    st.pyplot(fig2)
+
+    # Teste de Breusch-Pagan
+    bp_test = het_breuschpagan(residuos, modelo.model.exog)
+    p_bp = bp_test[3]  # p-valor do teste (stat, pval, fval, f_pval)
+
+    st.write(f"🔬 Breusch-Pagan (homocedasticidade dos resíduos): p = {p_bp:.4f}")
+    if p_bp < 0.05:
+        violou_homocedasticidade = True
+        st.warning("❗ Violação da homocedasticidade detectada (p < 0.05)")
+    else:
+        st.success("✅ Homocedasticidade verificada (p ≥ 0.05)")
+
+    # Diagnóstico final
+    st.subheader("🚨 Diagnóstico Final dos Pressupostos")
+    if violou_normalidade or violou_homocedasticidade:
+        st.error("⚠️ Um ou mais pressupostos da ANOVA foram violados. Considere usar ANOVA de Welch ou teste de Kruskal-Wallis.")
+    else:
+        st.success("✅ Todos os pressupostos foram atendidos. A ANOVA é apropriada.")
+
+
+
 
 def q3_etapa3():
-    st.subheader("🌍 Q3 - c) Ajustes no Modelo")
-    st.info("Verifique normalidade, homocedasticidade etc.")
+    st.subheader("🌍 Q3 - c) Ajustes no Modelo")    
+    st.info("Verifique normalidade, homocedasticidade   etc.")
+    
+    # recuperar df3 da sessão do streamlit
+    df3 = st.session_state.get("df3")
+    
+    if df3 is None:
+        st.warning("⚠️ Os dados ainda não foram carregados. Execute a Etapa 1 primeiro.")
+        return
+    
+    verificar_pressupostos_anova(df3, var_resposta="Quantity", fator_categ="Country")
+    verificar_pressupostos_anova(df3, var_resposta="Price", fator_categ="Country")  
+    
+
+   
+
 
 def q3_etapa4():
     st.subheader("🌍 Q3 - d) Interpretação e Decisão")
@@ -1096,12 +1421,12 @@ with st.sidebar:
     mostrar_todas = st.checkbox("✅ Mostrar todas as questões", value=False)
 
     # Questão 1
-    with st.expander("🏠 Questão 1 - Regressão Linear (Imóveis)", expanded=mostrar_todas):
-        show_q1_e1 = mostrar_todas or st.checkbox("1️⃣ Análise Descritiva", key="q1e1")
-        show_q1_e2 = mostrar_todas or st.checkbox("2️⃣ Modelo de Regressão Linear", key="q1e2")
-        show_q1_e3 = mostrar_todas or st.checkbox("3️⃣ Interpretação dos Resultados", key="q1e3")
-        show_q1_e4 = mostrar_todas or st.checkbox("4️⃣ Ajustes no Modelo", key="q1e4")
-        show_q1_e5 = mostrar_todas or st.checkbox("5️⃣ Tomada de Decisão", key="q1e5")
+    with st.expander(" Questão 1 - Regressão Linear (Imóveis)", expanded=mostrar_todas):
+        show_q1_e1 = mostrar_todas or st.checkbox("1️ Análise Descritiva", key="q1e1")
+        show_q1_e2 = mostrar_todas or st.checkbox("2️ Modelo de Regressão Linear", key="q1e2")
+        show_q1_e3 = mostrar_todas or st.checkbox("3️ Interpretação dos Resultados", key="q1e3")
+        show_q1_e4 = mostrar_todas or st.checkbox("4️ Ajustes no Modelo", key="q1e4")
+        show_q1_e5 = mostrar_todas or st.checkbox("5️ Tomada de Decisão", key="q1e5")
 
     # Questão 2
     with st.expander("🏨 Questão 2 - Regressão Logística (Reservas)", expanded=mostrar_todas):
