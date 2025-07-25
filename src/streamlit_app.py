@@ -1366,7 +1366,7 @@ def q3_etapa3():
     verificar_pressupostos_anova(df3, var_resposta="Price", fator_categ="Country")  
     
 
-   
+  #teste 
 
 
 def q3_etapa4():
