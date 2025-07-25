@@ -1368,90 +1368,13 @@ def q3_etapa3():
     verificar_pressupostos_anova(df3, var_resposta="Quantity", fator_categ="Country")
     verificar_pressupostos_anova(df3, var_resposta="Price", fator_categ="Country")  
     
-    
-        # aplicar  Kruskal-Wallis
-    from scipy.stats import kruskal
 
-    st.subheader("🌍 Q3 - c) Teste Kruskal-Wallis")
-    st.info("Teste não paramétrico para comparar medianas entre grupos.")
-    anchor = "teste_kruskal_wallis"
-    st.markdown(f"<a id='{anchor}'></a>", unsafe_allow_html=True)
-
-    # Agrupar os dados por país
-    grupos_quantity = [group["Quantity"].values for name, group in df3.groupby("Country")]
-    grupos_price = [group["Price"].values for name, group in df3.groupby("Country")]
-
-    # Aplicar o teste Kruskal-Wallis
-    kruskal_quantity = kruskal(*grupos_quantity)
-    kruskal_price = kruskal(*grupos_price)
-
-    # Exibir os resultados
-    st.markdown("### 📊 Teste Kruskal-Wallis - Comparação de Medianas")
-    st.write(f"🔬 Kruskal-Wallis (Quantidade): H = {kruskal_quantity.statistic:.4f}, p = {kruskal_quantity.pvalue:.4f}")
-    st.write(f"🔬 Kruskal-Wallis (Preço): H = {kruskal_price.statistic:.4f}, p = {kruskal_price.pvalue:.4f}")
-
-    # Análise automática dos resultados
-    st.markdown("### 🧠 Análise Comparativa")
-
-    # Interpretação Quantity
-    if kruskal_quantity.pvalue < 0.05:
-        st.success("✅ Diferença significativa detectada nas **quantidades vendidas entre países** (p < 0.05).")
-    else:
-        st.warning("⚠️ Não foi detectada diferença significativa nas **quantidades vendidas entre países** (p ≥ 0.05).")
-
-    # Interpretação Price
-    if kruskal_price.pvalue < 0.05:
-        st.success("✅ Diferença significativa detectada nos **preços praticados entre países** (p < 0.05).")
-    else:
-        st.warning("⚠️ Não foi detectada diferença significativa nos **preços praticados entre países** (p ≥ 0.05).")
-
-
-
+  #teste 
 
 
 def q3_etapa4():
     st.subheader("🌍 Q3 - d) Interpretação e Decisão")
-    
-    
-    from scipy.stats import kruskal
-
-    st.info(" Interpretação do Teste Kruskal-Wallis - Teste não paramétrico para comparar medianas entre grupos, Decisões com base nas diferenças de médias")
-
-    df3 = st.session_state.get("df3")
-    if df3 is None:
-        st.warning("⚠️ Os dados ainda não foram carregados. Execute a Etapa 1 primeiro.")
-        return
-
-    grupos_quantity = [group["Quantity"].values for name, group in df3.groupby("Country")]
-    grupos_price = [group["Price"].values for name, group in df3.groupby("Country")]
-
-    kruskal_quantity = kruskal(*grupos_quantity)
-    kruskal_price = kruskal(*grupos_price)
-
-    st.markdown("### 📊 Teste Kruskal-Wallis - Comparação de Medianas")
-    st.write(f"🔬 Kruskal-Wallis (Quantidade): H = {kruskal_quantity.statistic:.4f}, p = {kruskal_quantity.pvalue:.4f}")
-    st.write(f"🔬 Kruskal-Wallis (Preço): H = {kruskal_price.statistic:.4f}, p = {kruskal_price.pvalue:.4f}")
-
-    st.markdown("""
-    ### 📝 Análise dos Resultados – Teste de Kruskal-Wallis
-
-    Nesta etapa, foi aplicado o **teste de Kruskal-Wallis**, uma técnica não paramétrica utilizada para comparar as **medianas** de múltiplos grupos independentes, neste caso, os diferentes **países**.
-
-    Os resultados apontam:
-
-    - **Quantidade Vendida**: O valor da estatística de Kruskal-Wallis foi **H = {:.4f}**, com um **p-valor de {:.4f}**, indicando uma diferença estatisticamente significativa entre os países quanto à quantidade de produtos vendidos.
-    - **Preço dos Produtos**: A estatística H foi de **{:.4f}**, também com **p-valor de {:.4f}**, evidenciando que os preços praticados também variam significativamente entre os países.
-
-    Ambos os resultados têm **p < 0,05**, o que leva à rejeição da hipótese nula de igualdade das medianas entre os grupos. Isso confirma que **existem diferenças significativas tanto nas quantidades quanto nos preços entre os países analisados**.
-
-    Essas variações podem estar associadas a fatores econômicos locais, estratégias de mercado, políticas comerciais ou mesmo particularidades culturais e regionais que afetam o consumo e o valor dos produtos. Portanto, **estratégias de venda e precificação devem considerar essas diferenças para maior assertividade e competitividade em cada mercado nacional**.
-    """.format(
-        kruskal_quantity.statistic, kruskal_quantity.pvalue,
-        kruskal_price.statistic, kruskal_price.pvalue
-    ))
-    
-    
-    
+    st.info("Decisões com base nas diferenças de médias.")
 
 # =============================
 # 🔧 Funções - Questão 4
@@ -1526,10 +1449,9 @@ with st.sidebar:
         show_q4_e5 = mostrar_todas or st.checkbox("e) K-Means / DBSCAN", key="q4e5")
         show_q4_e6 = mostrar_todas or st.checkbox("f) Decisão Estratégica", key="q4e6")
 
-# =============================
-# ▶️ EXECUÇÃO DE ETAPAS SELECIONADAS
-# =============================
 
+
+# CHAMADAS DAS FUNÇÕES DE CADA ITEM
 if show_q1_e1: q1_etapa1()
 if show_q1_e2: q1_etapa2()
 if show_q1_e3: q1_etapa3()
@@ -1553,8 +1475,9 @@ if show_q4_e4: q4_etapa4()
 if show_q4_e5: q4_etapa5()
 if show_q4_e6: q4_etapa6()
 
+
+
 # Rodapé
 st.markdown("---")
 st.markdown("🧮 **Prova Final - Ciência de Dados Aplicada**  \n👩‍🏫 Professor(a): [Nome do Professor]  \n📊 Universidade XYZ - 2025")
-
 
