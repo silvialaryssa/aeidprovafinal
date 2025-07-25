@@ -9,3 +9,4 @@ seaborn>=0.12.0
 altair>=4.2.0
 plotly>=5.15.0
 imbalanced-learn>=0.11.0
+scikit-learn>=1.2.0
