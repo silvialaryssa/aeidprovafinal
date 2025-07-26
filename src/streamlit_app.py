@@ -2108,11 +2108,6 @@ Clique no link abaixo para visualizar e interagir com o painel da prova final:
 
 🔗 [👉 AIED - Prova Final: ](https://aiedprovafinal.streamlit.app/)
 """)
-st.markdown("""
-### 📊 Descrição do App
-O aplicativo tem como objetivo fornecer uma plataforma interativa para a realização da prova final de Análise Estatística de Dados e Informações. Os usuários podem explorar diferentes técnicas estatísticas, visualizar resultados e obter insights a partir de dados simulados.
-
-""")
 
 
 # MENU LATERAL
