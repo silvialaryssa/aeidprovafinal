@@ -1305,11 +1305,17 @@ def verificar_pressupostos_anova(df, var_resposta, fator_categ='Country'):
 
     # 1️⃣ Normalidade dos resíduos
     st.subheader("1️⃣ Normalidade dos Resíduos (Q-Q Plot + Shapiro-Wilk)")
+ # 2️⃣ Homocedasticidade com Breusch-Pagan
+    st.subheader("2️⃣ Homocedasticidade (Breusch-Pagan + Gráfico de Resíduos)")
+    
+    # Criar um container estreito com colunas
+    col1, col2, col3 = st.columns([1, 2, 1])  # centraliza
 
-    fig1 = plt.figure()
-    sm.qqplot(residuos, line='s', ax=plt.gca())
-    plt.title("Q-Q Plot dos Resíduos")
-    st.pyplot(fig1)
+    with col1:
+        fig, ax = plt.subplots(figsize=(3, 2.5))
+        sm.qqplot(residuos, line='s', ax=ax)
+        ax.set_title("Q-Q Plot dos Resíduos", fontsize=10)
+        st.pyplot(fig)
 
     shapiro_stat, shapiro_p = shapiro(residuos)
     if shapiro_p < 0.05:
@@ -1318,20 +1324,22 @@ def verificar_pressupostos_anova(df, var_resposta, fator_categ='Country'):
     else:
         st.success(f"✅ Resíduos seguem distribuição normal (Shapiro-Wilk p = {shapiro_p:.4f})")
 
-    # 2️⃣ Homocedasticidade com Breusch-Pagan
-    st.subheader("2️⃣ Homocedasticidade (Breusch-Pagan + Gráfico de Resíduos)")
+   
 
-    fig2 = plt.figure(figsize=(4, 3))  # largura = 4, altura = 3 polegadas
-    sns.scatterplot(x=valores_previstos, y=residuos, s=10)  # pontos menores (opcional)
-    plt.axhline(0, color='red', linestyle='--')
-    plt.xlabel("Valores Previstos", fontsize=8)
-    plt.ylabel("Resíduos", fontsize=8)
-    plt.title("Resíduos vs. Valores Previstos", fontsize=10)
-    plt.xticks(fontsize=7)
-    plt.yticks(fontsize=7)
-    plt.tight_layout()  # para garantir que nada fique cortado
+    # Layout com colunas para centralizar e limitar largura
+    #col1, col2, col3 = st.columns([1, 2, 1])  # col2 é a central
 
-    st.pyplot(fig2)
+    with col2:
+        with st.container():
+            fig2, ax2 = plt.subplots(figsize=(3, 2.5), dpi=100)
+            sns.scatterplot(x=valores_previstos, y=residuos, s=10, ax=ax2)
+            ax2.axhline(0, color='red', linestyle='--')
+            ax2.set_xlabel("Valores Previstos", fontsize=8)
+            ax2.set_ylabel("Resíduos", fontsize=8)
+            ax2.set_title("Resíduos vs. Valores Previstos", fontsize=10)
+            ax2.tick_params(axis='both', labelsize=7)
+            fig2.tight_layout()
+            st.pyplot(fig2, use_container_width=False)
 
     # Teste de Breusch-Pagan
     bp_test = het_breuschpagan(residuos, modelo.model.exog)
@@ -1461,12 +1469,316 @@ def q4_etapa1():
     st.info("Importância de prever reclamações no varejo.")
 
 def q4_etapa2():
-    st.subheader("🛒 Q4 - b) Análise Descritiva")
-    st.info("Examine variáveis ligadas à variável 'Complain'.")
+    import streamlit as st
+    import pandas as pd
+    import numpy as np
+    import seaborn as sns
+    import matplotlib.pyplot as plt
+
+    
+
+    st.title("📊 Análise Descritiva: Customer Personality Analysis")
+
+    # Carregar dados
+    @st.cache_data
+    def carregar_dados():
+        return pd.read_csv("src/marketing_campaign.csv", sep="\t")
+
+    df4 = carregar_dados()
+    
+    # iNserir df4 na sessão do streamlit
+    st.session_state["df4"] = df4
+    # Exibir o DataFrame original
+    
+    with st.expander("📚 Dicionário de Dados"):
+        st.markdown("""
+    ### 👤 Pessoas
+    - **ID**: Identificador exclusivo do cliente  
+    - **Year_Birth**: Ano de nascimento do cliente  
+    - **Education**: Nível de escolaridade do cliente  
+    - **Marital_Status**: Estado civil do cliente  
+    - **Income**: Renda familiar anual do cliente  
+    - **Kidhome**: Número de crianças na casa do cliente  
+    - **Teenhome**: Número de adolescentes na casa do cliente  
+    - **Dt_Customer**: Data de inscrição do cliente na empresa  
+    - **Recency**: Número de dias desde a última compra do cliente  
+    - **Complain**: 1 se o cliente reclamou nos últimos 2 anos, 0 caso contrário  
+
+    ---
+
+    ### 🛍️ Produtos
+    - **MntWines**: Valor gasto em vinho nos últimos 2 anos  
+    - **MntFruits**: Valor gasto em frutas nos últimos 2 anos  
+    - **MntMeatProducts**: Valor gasto em carne nos últimos 2 anos  
+    - **MntFishProducts**: Valor gasto em peixes nos últimos 2 anos  
+    - **MntSweetProducts**: Valor gasto em doces nos últimos 2 anos  
+    - **MntGoldProds**: Valor gasto em ouro nos últimos 2 anos  
+
+    ---
+
+    ### 🎯 Promoção
+    - **NumDealsPurchases**: Número de compras feitas com desconto  
+    - **AcceptedCmp1**: 1 se o cliente aceitou a oferta na 1ª campanha  
+    - **AcceptedCmp2**: 1 se o cliente aceitou a oferta na 2ª campanha  
+    - **AcceptedCmp3**: 1 se o cliente aceitou a oferta na 3ª campanha  
+    - **AcceptedCmp4**: 1 se o cliente aceitou a oferta na 4ª campanha  
+    - **AcceptedCmp5**: 1 se o cliente aceitou a oferta na 5ª campanha  
+    - **Response**: 1 se o cliente aceitou a oferta na última campanha  
+
+    ---
+
+    ### 🏬 Lugar (Canal de Compra)
+    - **NumWebPurchases**: Número de compras feitas através do site  
+    - **NumCatalogPurchases**: Número de compras feitas usando catálogo  
+    - **NumStorePurchases**: Número de compras feitas diretamente nas lojas  
+    - **NumWebVisitsMonth**: Número de visitas ao site no último mês  
+    """)
+
+    
+    
+    
+
+    # ----------- Tratamento inicial ----------- #
+    df4["Income"] = df4["Income"].fillna(df4["Income"].median())
+    df4.drop(columns=["Z_CostContact", "Z_Revenue", "ID"], inplace=True)
+    df4["Age"] = 2025 - df4["Year_Birth"]
+    df4["Dt_Customer"] = pd.to_datetime(df4["Dt_Customer"], format="%d-%m-%Y")
+    df4["TotalChildren"] = df4["Kidhome"] + df4["Teenhome"]
+    df4["TotalSpent"] = df4[[
+        "MntWines", "MntFruits", "MntMeatProducts", 
+        "MntFishProducts", "MntSweetProducts", "MntGoldProds"
+    ]].sum(axis=1)
+
+    # Codificação
+    df_encoded = pd.get_dummies(df4, columns=["Education", "Marital_Status"], drop_first=True)
+
+    # ----------- Painel de Análise ----------- #
+    st.markdown("## 🔍 Visão Geral da Base")
+    st.dataframe(df4.head())
+
+    st.markdown("## Tratamento de Dados")
+    st.write("Valores ausentes tratados. Renda preenchida com mediana.")
+    st.write("Variáveis derivadas adicionadas: `Age`, `TotalChildren`, `TotalSpent`")
+
+    # ----------- Estatísticas e Segmentos ----------- #
+    st.markdown("##  Estatísticas Descritivas por Grupo")
+
+    with st.expander("👤 Pessoas"):
+        st.write(df4[["Age", "Income", "Kidhome", "Teenhome", "TotalChildren"]].describe())
+        fig1, ax1 = plt.subplots()
+        sns.histplot(df4["Age"], bins=20, kde=True, ax=ax1)
+        ax1.set_title("Distribuição da Idade")
+        st.pyplot(fig1)
+
+    with st.expander("🛍️ Produtos"):
+        cols_prod = ["MntWines", "MntFruits", "MntMeatProducts",
+                    "MntFishProducts", "MntSweetProducts", "MntGoldProds", "TotalSpent"]
+        st.write(df4[cols_prod].describe())
+        fig2, ax2 = plt.subplots(figsize=(10, 4))
+        sns.boxplot(data=df4[cols_prod], ax=ax2)
+        ax2.set_title("Gasto por Categoria de Produto")
+        ax2.set_xticklabels(ax2.get_xticklabels(), rotation=45)
+        st.pyplot(fig2)
+
+    with st.expander("🎯 Promoções"):
+        cols_promo = ["AcceptedCmp1", "AcceptedCmp2", "AcceptedCmp3",
+                    "AcceptedCmp4", "AcceptedCmp5", "Response", "NumDealsPurchases"]
+        st.write(df4[cols_promo].sum().to_frame("Total de Aceites/Compras"))
+
+    with st.expander("🏬 Lugar / Canal"):
+        cols_lugar = ["NumWebPurchases", "NumCatalogPurchases", 
+                    "NumStorePurchases", "NumWebVisitsMonth"]
+        st.write(df4[cols_lugar].describe())
+        fig3, ax3 = plt.subplots()
+        sns.heatmap(df4[cols_lugar].corr(), annot=True, cmap="coolwarm", ax=ax3)
+        st.pyplot(fig3)
+
+    # ----------- Relação com Reclamar ----------- #
+    st.markdown("## 🎯 Reclamações (Variável Alvo)")
+
+    st.write("Distribuição de Reclamações")
+    fig4, ax4 = plt.subplots()
+    sns.countplot(x="Complain", data=df4, ax=ax4)
+    ax4.set_title("Complain - Distribuição")
+    st.pyplot(fig4)
+    quantidade_reclamacoes = df4["Complain"].value_counts()
+    st.write("Quantidade de Reclamações: 0 (não reclamou) e 1 (reclamou):")
+    st.markdown("#### Quantidade de Reclamações")
+    st.markdown("0 (não reclamou): {} | 1 (reclamou): {}".format(
+        quantidade_reclamacoes.get(0, 0), quantidade_reclamacoes.get(1, 0)))
+    st.markdown("#### Tabela de Reclamações")
+    quantidade_reclamacoes = df4["Complain"].value_counts().rename_axis("Complain").reset_index(name="Count")
+    quantidade_reclamacoes["Percentage"] = (quantidade_reclamacoes["Count"] / quantidade_reclamacoes["Count"].sum()) * 100
+    quantidade_reclamacoes["Percentage"] = quantidade_reclamacoes["Percentage"].round(2)
+    quantidade_reclamacoes = quantidade_reclamacoes.rename(columns={"Complain": "Reclamou"})
+    quantidade_reclamacoes = quantidade_reclamacoes.set_index("Reclamou")   
+    st.write(quantidade_reclamacoes)    
+    
+    # Justifica que adotaremos a tecnica smote para lidar com o desbalanceamento
+    st.markdown("### Desbalanceamento de Classes")
+    st.write("A variável alvo `Complain` apresenta um desbalanceamento significativo, com a maioria dos clientes não reclamando. Para lidar com isso, utilizaremos a técnica SMOTE (Synthetic Minority Over-sampling Technique) para balancear as classes antes de treinar os modelos preditivos.")
+
+    st.markdown("### 🔍 Boxplots: Variáveis numéricas vs Reclamar")
+    col_numericas = ["Income", "Age", "TotalSpent", "TotalChildren", "Recency", "NumWebVisitsMonth"]
+
+    for col in col_numericas:
+        fig, ax = plt.subplots()
+        sns.boxplot(x="Complain", y=col, data=df4, ax=ax)
+        ax.set_title(f"{col} vs Reclamar")
+        st.pyplot(fig)
+
+    # ----------- Correlação ----------- #
+    st.markdown("## 📌 Correlação com Reclamar")
+    correlacoes = df_encoded.corr()["Complain"].sort_values(ascending=False)
+    st.dataframe(correlacoes.to_frame().rename(columns={"Complain": "Correlação com Reclamar"}))
+
+    # ----------- Dispersão Multivariada ----------- #
+    st.markdown("## 🌐 Relações Multivariadas")
+
+    fig, ax = plt.subplots()
+    sns.scatterplot(x="Income", y="TotalSpent", hue="Complain", data=df4, ax=ax)
+    ax.set_title("Gasto Total vs Renda (Colorido por Reclamar)")
+    st.pyplot(fig)
+
+    # Final
+    st.success("✅ Análise Descritiva Concluída.")
+
+
+        
+    
 
 def q4_etapa3():
     st.subheader("🛒 Q4 - c) Seleção de Modelos")
     st.info("Compare Logistic, Árvores, Random Forest, XGBoost.")
+    
+    #recuperar df4 da sessão do streamlit
+    df4 = st.session_state.get("df4")
+    if df4 is None:
+        st.warning("⚠️ Os dados ainda não foram carregados. Execute a Etapa 2 primeiro.")
+        return
+   
+    import pandas as pd
+    import numpy as np
+    from sklearn.model_selection import train_test_split
+    from sklearn.linear_model import LogisticRegression
+    from sklearn.tree import DecisionTreeClassifier
+    from sklearn.ensemble import RandomForestClassifier
+    from xgboost import XGBClassifier
+    from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, roc_auc_score, confusion_matrix, classification_report, ConfusionMatrixDisplay
+    from imblearn.over_sampling import SMOTE
+    from sklearn.preprocessing import StandardScaler
+    import warnings
+    warnings.filterwarnings("ignore")
+    # Pré-processamento
+    df4["Income"] = df4["Income"].fillna(df4["Income"].median())
+    df4["Age"] = 2025 - df4["Year_Birth"]
+    df4["TotalChildren"] = df4["Kidhome"] + df4["Teenhome"]
+    df4["TotalSpent"] = df4[[
+        "MntWines", "MntFruits", "MntMeatProducts",
+        "MntFishProducts", "MntSweetProducts", "MntGoldProds"
+    ]].sum(axis=1)
+
+    df4 = df4.drop(columns=["ID", "Year_Birth", "Dt_Customer", "Z_CostContact", "Z_Revenue"], errors="ignore")
+    df4 = pd.get_dummies(df4, columns=["Education", "Marital_Status"], drop_first=True)
+
+    # Divisão X e y
+    X = df4.drop(columns=["Complain"])
+    y = df4["Complain"]
+
+    # Divisão treino/teste
+    X_train, X_test, y_train, y_test = train_test_split(X, y, stratify=y, random_state=42)
+
+    # Escalonamento
+    scaler = StandardScaler()
+    X_train_scaled = scaler.fit_transform(X_train)
+    X_test_scaled = scaler.transform(X_test)
+
+    # Modelos a testar
+    modelos = {
+        "Árvore de Decisão": DecisionTreeClassifier(class_weight='balanced', random_state=42),
+        "Random Forest": RandomForestClassifier(class_weight='balanced', random_state=42),
+        "XGBoost": XGBClassifier(
+            scale_pos_weight=(y_train == 0).sum() / (y_train == 1).sum(),
+            use_label_encoder=False,
+            eval_metric='logloss',
+            random_state=42
+        )
+    }
+
+    st.header("🔍 Avaliação dos Modelos")
+    resultados = []
+
+    for nome, modelo in modelos.items():
+        modelo.fit(X_train_scaled, y_train)
+        y_pred = modelo.predict(X_test_scaled)
+        y_prob = modelo.predict_proba(X_test_scaled)[:, 1]
+
+        report = classification_report(y_test, y_pred, output_dict=True, zero_division=0)
+        auc = roc_auc_score(y_test, y_prob)
+
+        # Matriz de confusão
+        cm = confusion_matrix(y_test, y_pred)
+        fig, ax = plt.subplots()
+        disp = ConfusionMatrixDisplay(confusion_matrix=cm)
+        disp.plot(ax=ax)
+        plt.title(f"Matriz de Confusão - {nome}")
+        st.pyplot(fig)
+
+        resultados.append({
+            "Modelo": nome,
+            "Acurácia": report["accuracy"],
+            "Precisão": report["1"]["precision"],
+            "Recall": report["1"]["recall"],
+            "F1-score": report["1"]["f1-score"],
+            "AUC": auc
+        })
+
+    # Tabela final
+    st.markdown("### Comparação Final dos Modelos")
+    df_result = pd.DataFrame(resultados).sort_values(by="F1-score", ascending=False)
+    st.dataframe(df_result, use_container_width=True)
+    
+        
+    st.markdown("### Seleção de Modelos para Previsão de Reclamações")
+    
+    st.markdown(
+    "A seguir, apresentamos uma análise comparativa de diferentes modelos de machine learning para prever reclamações de clientes com base em suas características demográficas e comportamentais. "
+    "Como a variável alvo `Complain` está altamente desbalanceada (apenas 22 positivos em mais de 2200 registros), aplicamos estratégias específicas de balanceamento para cada modelo:"
+    )
+
+    st.markdown("""
+    - **Árvore de Decisão**: utilizou `class_weight='balanced'` para penalizar mais os erros da classe minoritária.
+    - **Random Forest**: também utilizou `class_weight='balanced'`, o que redistribui o peso das classes automaticamente.
+    - **XGBoost**: utilizou `scale_pos_weight`, calculado como a razão entre a classe negativa e a positiva, para ajustar a importância da minoria.
+
+    Essas abordagens buscam reduzir o viés para a classe majoritária e aumentar a sensibilidade do modelo aos clientes que realmente reclamaram.
+    """)
+    
+    
+
+    st.markdown(
+        "A seguir, apresentamos uma análise comparativa de diferentes modelos de machine learning para prever reclamações de clientes com base em suas características demográficas e comportamentais. "
+        "Os modelos testados foram: **Árvore de Decisão**, **Random Forest** e **XGBoost**. "
+        "O objetivo é identificar o modelo mais eficaz para prever se um cliente irá reclamar ou não, utilizando métricas como acurácia, precisão, recall, F1-score e AUC."
+    )
+
+    st.markdown("""
+    | Modelo             | Acurácia | Precisão | Recall | F1-Score | AUC     |
+    |--------------------|----------|----------|--------|----------|---------|
+    | XGBoost            | 0.993    | 0.667    | 0.400  | 0.500    | 0.704   |
+    | Random Forest      | 0.993    | 1.000    | 0.200  | 0.333    | 0.771   |
+    | Árvore de Decisão  | 0.989    | 0.333    | 0.200  | 0.250    | 0.598   |
+    """)
+
+    st.markdown("""
+    **Análise**:
+    - O **Random Forest** apresentou o melhor desempenho em AUC (0.771), indicando boa capacidade de separação entre clientes que reclamam e os que não reclamam.
+    - O **XGBoost** teve o melhor equilíbrio entre precisão e recall, resultando em maior F1-score (**0.500**), sendo mais robusto para detectar corretamente clientes com maior risco de reclamar.
+    - A **Árvore de Decisão** simples teve o desempenho mais baixo, sugerindo que modelos mais complexos são mais adequados ao problema.
+
+    ✅ **Conclusão**: o modelo **XGBoost** é o mais indicado, considerando o equilíbrio entre todas as métricas de avaliação.
+    """)
+
 
 def q4_etapa4():
     st.subheader("🛒 Q4 - d) SHAP e Explicabilidade")
