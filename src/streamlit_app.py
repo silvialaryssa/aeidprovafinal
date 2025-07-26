@@ -250,7 +250,7 @@ def q1_etapa1():
 #
 def q1_etapa2():
     st.markdown("---")
-    st.header("Q1 - 2 - Regressao lienar Modelo de Regressão Linear")
+    st.header("Q1 - 2 - Regressao linear Modelo de Regressão Linear")
     st.info("Crie o modelo de regressão linear com métricas de desempenho.")
 
     df = st.session_state.get("kc_df")
@@ -319,7 +319,7 @@ def q1_etapa2():
 
 def q1_etapa3():
     st.markdown("---")
-    st.header("Q1 - 3️⃣ Interpretação dos Resultados")
+    st.header("Q1 - 3️ Interpretação dos Resultados")
     if "X_test" in st.session_state and "y_test" in st.session_state and "y_pred" in st.session_state:
         X = st.session_state["X_test"]
         y = st.session_state["y_test"]
@@ -332,7 +332,7 @@ def q1_etapa3():
 
 def q1_etapa4():
     st.markdown("---")
-    st.header("4️⃣ Ajustes no Modelo")
+    st.header("Q1 - 4 Ajustes no Modelo")
     df = st.session_state.get("kc_df")
     if df is None:
         st.warning("⚠️ Os dados ainda não foram carregados. Execute a Etapa 1 primeiro.")
@@ -419,10 +419,10 @@ def q1_etapa4():
 
 
 def q1_etapa5():
-    st.header("Q1 - 5️⃣ Tomada de Decisão")
+    st.header("Q1 - 5️ Tomada de Decisão")
     st.info("Descreva aplicações práticas do modelo no contexto de negócio.")
     
-    st.markdown("## 📌 Análise da Questão 1 – Regressão Linear")
+    st.markdown("## Análise da Questão 1 – Regressão Linear")
 
     st.markdown("""
     A análise da Questão 1 teve como objetivo prever os preços de imóveis na região de **King County** utilizando **Regressão Linear**.  
@@ -463,7 +463,7 @@ def q1_etapa5():
     """)
 
     st.markdown("""
-    ### 💼 Aplicação no Negócio
+    ### Aplicação no Negócio
 
     Mesmo com limitações, os modelos desenvolvidos oferecem **insights úteis para negócios**.  
     Eles podem auxiliar:
@@ -1019,46 +1019,48 @@ def q2_etapa3():
 
         st.subheader("Análise Final das Principais Variáveis")
 
-        st.markdown("""
+        st.subheader("Análise Final das Principais Variáveis")
+
+        st.markdown(r"""
         ### 🔺 Cinco variáveis que mais **aumentam** a chance de cancelamento:
 
-        1. **`deposit_type_Non Refund`**  
-        Depósitos não reembolsáveis estão associadas a uma **alta chance de cancelamento negativo** (impacto negativo forte no modelo), ou seja, sua ausência pode elevar o risco.
+        1. `cat__deposit_type_Non Refund`  
+        Reservas com **depósito não reembolsável** estão fortemente associadas ao **aumento da chance de cancelamento**, indicando que esse perfil tem maior risco, possivelmente por políticas mais rígidas.
 
-        2. **`required_car_parking_spaces`**  
-        Quanto **menos necessidade de vaga de estacionamento**, maior a probabilidade de o cliente cancelar — sugerindo menor comprometimento.
+        2. `cat__distribution_channel_Undefined`  
+        Quando o canal de distribuição está indefinido, há um **aumento moderado na chance de cancelamento**, o que pode indicar registros incompletos ou reservas atípicas.
 
-        3. **`market_segment_Offline TA/TO`**  
-        Reservas feitas por agências offline parecem estar mais ligadas a cancelamentos.
+        3. `num__previous_cancellations`  
+        Clientes com **histórico de cancelamentos anteriores** tendem a cancelar novamente, contribuindo para uma **maior probabilidade de churn**.
 
-        4. **`deposit_type_Refundable`**  
-        A opção de **reembolso** facilita o cancelamento, aumentando sua probabilidade.
+        4. `cat__customer_type_Transient`  
+        Clientes do tipo **"Transient" (hóspedes de passagem)** apresentam comportamento mais volátil, elevando a chance de cancelamento, talvez por flexibilidade nos planos.
 
-        5. **`market_segment_Groups`**  
-        Embora grupos sejam geralmente mais estáveis, nesse caso específico os dados indicam **maior risco de cancelamento**, talvez por volume ou incerteza logística.
+        5. `num__lead_time`  
+        Quanto **maior o tempo entre a reserva e a chegada (lead time)**, maior a chance de o cliente cancelar, sugerindo que planos feitos com muita antecedência mudam com frequência.
 
         ---
 
         ### 🔻 Cinco variáveis que mais **reduzem** a chance de cancelamento:
 
-        1. **`lead_time`**  
-        Reservas feitas com bastante antecedência estão **menos propensas a serem canceladas**, indicando planejamento.
+        1. `num__required_car_parking_spaces`  
+        Clientes que solicitam **vagas de estacionamento** demonstram maior comprometimento com a estadia, **reduzindo a chance de cancelamento**.
 
-        2. **`customer_type_Transient`**  
-        Hóspedes de tipo transitório demonstram **baixo risco de cancelamento**, talvez por viagens rápidas e com datas fixas.
+        2. `cat__deposit_type_No Deposit`  
+        Reservas sem exigência de depósito estão associadas a **menor risco de cancelamento**, possivelmente por reduzirem barreiras de compromisso financeiro.
 
-        3. **`previous_cancellations`**  
-        Curiosamente, clientes com histórico anterior **têm menor peso negativo aqui**, indicando que talvez tenham retornado com mais compromisso.
+        3. `cat__market_segment_Offline TA/TO`  
+        Contrariando expectativas, reservas feitas por **agências offline** mostram **menor taxa de cancelamento**, indicando fidelidade ou menor flexibilidade contratual.
 
-        4. **`market_segment_Complementary`**  
-        Reservas promocionais ou gratuitas apresentam **menor risco de cancelamento**, talvez por serem incentivos vinculados a eventos específicos.
+        4. `cat__deposit_type_Refundable`  
+        Curiosamente, o modelo indica que **opções reembolsáveis** estão ligadas a **menor risco de cancelamento**, o que pode refletir maior segurança do cliente ao reservar.
 
-        5. **`distribution_channel_Undefined`**  
-        Quando o canal de distribuição não é especificado, o modelo entende que há **menos risco de cancelamento**, possivelmente por padrão de preenchimento.
+        5. `cat__distribution_channel_GDS`  
+        Canais GDS (Global Distribution System) estão associados a **reservas mais firmes**, com menor chance de cancelamento.
 
         ---
 
-        Essas variáveis ajudam a identificar **perfis de clientes, canais e reservas** com maior ou menor probabilidade de cancelamento, permitindo **ações preventivas** e estratégias comerciais mais eficazes.
+        Essas variáveis ajudam a identificar **perfis de risco e comportamento** nas reservas de hotel, permitindo ações como **personalização de ofertas, mitigação de perdas e melhorias na previsão de ocupação**.
         """)
 
 
@@ -1489,7 +1491,7 @@ def q4_etapa2():
 
     
 
-    st.title("📊 Análise Descritiva: Customer Personality Analysis")
+    st.subheader("Análise Descritiva: Customer Personality Analysis")
 
     # Carregar dados
     @st.cache_data
@@ -1845,7 +1847,7 @@ def q4_etapa4():
 
 
     # Título da seção
-    st.markdown("## 🔍 Explicabilidade das Variáveis com SHAP")
+    st.markdown("## Explicabilidade das Variáveis com SHAP")
 
     st.markdown(
         """
@@ -2101,12 +2103,13 @@ def q4_etapa6():
 st.set_page_config(page_title="📊 Prova Final - Análise Estatística", layout="wide")
 st.title("📚 Prova Final - Análise Estatística de Dados e Informações")
 st.markdown("Desenvolvido por: [Silvia Laryssa Branco da Silva] &nbsp;&nbsp;&nbsp;&nbsp;📅 Julho 2025")
+
 st.markdown("""
-### 📄 Acesse a prova final
+### 📄 Acesse sua Prova Final
 
-Clique no link abaixo para visualizar e interagir com o painel da prova final:
+-  [👉 Painel Interativo da Prova Final - https://aiedprovafinal.streamlit.app/](https://aiedprovafinal.streamlit.app/)
+-  [👉 Código-Fonte no GitHub - https://github.com/silvialaryssa/aeidprovafinal](https://github.com/silvialaryssa/aeidprovafinal)
 
-🔗 [👉 AIED - Prova Final: ](https://aiedprovafinal.streamlit.app/)
 """)
 
 
