@@ -2105,7 +2105,7 @@ st.title("📚 Prova Final - Análise Estatística de Dados e Informações")
 st.markdown("Desenvolvido por: [Silvia Laryssa Branco da Silva] &nbsp;&nbsp;&nbsp;&nbsp;📅 Julho 2025")
 
 st.markdown("""
-### 📄 Acesse sua Prova Final
+### Links - Prova Final
 
 -  [👉 Painel Interativo da Prova Final - https://aiedprovafinal.streamlit.app/](https://aiedprovafinal.streamlit.app/)
 -  [👉 Código-Fonte no GitHub - https://github.com/silvialaryssa/aeidprovafinal](https://github.com/silvialaryssa/aeidprovafinal)
