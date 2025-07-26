@@ -1465,7 +1465,7 @@ def q3_etapa4():
 # 🔧 Funções - Questão 4
 # =============================
 def q4_etapa1():
-    st.subheader("🛒 Q4 - a) Discussão do Problema")
+    st.subheader("Q4 - a) Discussão do Problema")
     st.info("Importância de prever reclamações no varejo.")
 
 def q4_etapa2():
@@ -1648,7 +1648,7 @@ def q4_etapa2():
     
 
 def q4_etapa3():
-    st.subheader("🛒 Q4 - c) Seleção de Modelos")
+    st.subheader("Q4 - c) Seleção de Modelos")
     st.info("Compare Logistic, Árvores, Random Forest, XGBoost.")
     
     #recuperar df4 da sessão do streamlit
@@ -1692,6 +1692,9 @@ def q4_etapa3():
     scaler = StandardScaler()
     X_train_scaled = scaler.fit_transform(X_train)
     X_test_scaled = scaler.transform(X_test)
+    
+
+
 
     # Modelos a testar
     modelos = {
@@ -1704,6 +1707,16 @@ def q4_etapa3():
             random_state=42
         )
     }
+    
+     # Para avaliar o modelo na proxima questao
+    
+    #adicionar modelos na sessão do streamlit
+    st.session_state["modelos"] = modelos
+  
+    #inserir X_test na sessão do streamlit
+    st.session_state["X_test"] = X_test
+
+  
 
     st.header("🔍 Avaliação dos Modelos")
     resultados = []
@@ -1778,21 +1791,296 @@ def q4_etapa3():
 
     ✅ **Conclusão**: o modelo **XGBoost** é o mais indicado, considerando o equilíbrio entre todas as métricas de avaliação.
     """)
+    
+    
+    st.markdown("### ✅ Justificativa da escolha do Modelo XGBoost")
+
+    st.markdown(
+        "O **XGBoost (Extreme Gradient Boosting)** foi escolhido por sua alta capacidade de generalização, eficiência computacional e excelente desempenho em tarefas de classificação binária, especialmente em conjuntos de dados desbalanceados. "
+        "Diferente de modelos tradicionais, o XGBoost permite o ajuste explícito do parâmetro `scale_pos_weight`, que controla o peso da classe minoritária no cálculo da função de perda. "
+        "Esse recurso é especialmente útil no contexto desta análise, onde apenas 1% dos clientes fizeram reclamações, gerando forte desbalanceamento na variável alvo `Complain`."
+    )
+
+    st.markdown(
+        "Além disso, o XGBoost é robusto contra overfitting e realiza regularização L1/L2 automaticamente, o que o torna altamente indicado para dados com múltiplas variáveis explicativas e possíveis correlações."
+    )
+
+    st.success("📌 Portanto, o XGBoost foi ajustado com `scale_pos_weight` para lidar adequadamente com o desbalanceamento e demonstrou bom equilíbrio entre precisão e recall.")
+
+    
 
 
 def q4_etapa4():
-    st.subheader("🛒 Q4 - d) SHAP e Explicabilidade")
+    st.subheader("Q4 - d) SHAP e Explicabilidade")
     st.info("Use SHAP para entender a influência das variáveis.")
+    
+
+    # Recuperar o modelo XGBoost da sessão do streamlit
+    modelos = st.session_state.get("modelos")
+    if modelos is None:
+        st.warning("⚠️ O modelo ainda não foi treinado. Execute a Etapa 3 primeiro.")
+        return
+
+    X_test = st.session_state.get("X_test")
+    if X_test is None:
+        st.warning("⚠️ Os dados de teste ainda não foram carregados. Execute a Etapa 3 primeiro.")
+        return
+    import shap
+    import matplotlib.pyplot as plt
+    # Aplicar SHAP (TreeExplainer para XGBoost)
+    explainer = shap.TreeExplainer(modelos["XGBoost"])
+    shap_values = explainer.shap_values(X_test)
+
+
+    # Título da seção
+    st.markdown("## 🔍 Explicabilidade das Variáveis com SHAP")
+
+    st.markdown(
+        """
+        Utilizamos o método SHAP (SHapley Additive exPlanations) com o modelo XGBoost para entender o impacto de cada variável nas previsões de reclamações.
+        A seguir, são exibidos dois gráficos:
+        - **Gráfico de barras**: mostra a importância média das variáveis no modelo.
+        - **Beeswarm**: mostra a distribuição dos impactos individuais por variável.
+        """
+    )
+    
+
+
+    # Gráfico de barras (importância média)
+    st.subheader("📊 Importância Média das Variáveis")
+    fig_bar, ax = plt.subplots()
+    shap.summary_plot(shap_values, X_test, plot_type="bar", show=False)
+    st.pyplot(fig_bar)
+
+    # Gráfico beeswarm (impacto individual)
+    st.subheader("🌪️ Impacto Individual das Variáveis")
+    fig_beeswarm, ax = plt.subplots()
+    shap.summary_plot(shap_values, X_test, show=False)
+    st.pyplot(fig_beeswarm)
+    
+    st.markdown("### 📊 Interpretação das Variáveis Mais Influentes (SHAP)")
+
+    st.markdown("""
+    A análise de explicabilidade com SHAP revelou quais variáveis mais impactam a previsão de reclamações dos clientes. Abaixo, discutimos os principais fatores e seu significado no contexto do negócio:
+    """)
+
+    st.markdown("""
+    #### 1. Age (Idade)  
+    A idade foi a variável com maior impacto no modelo preditivo.  
+    Clientes mais jovens e mais velhos tendem a ter diferentes níveis de expectativa em relação aos produtos e serviços. Por exemplo, consumidores mais velhos podem ser mais criteriosos e mais propensos a formalizar reclamações quando percebem falhas no atendimento ou no produto.
+    """)
+
+    st.markdown("""
+    #### 2. MntWines (Gasto com vinhos)  
+    Reflete o nível de consumo específico em produtos premium como vinhos.  
+    Clientes que investem valores mais altos nesse item são geralmente mais exigentes quanto à qualidade, entrega e experiência geral de compra, o que aumenta a chance de reclamações em caso de frustração.
+    """)
+
+    st.markdown("""
+    #### 3. MntMeatProducts & MntGoldProds  
+    Indicadores de clientes com ticket médio elevado.  
+    Esses consumidores geralmente têm maior valor agregado para a empresa e, por isso, esperam um serviço de excelência. Pequenas falhas podem comprometer sua experiência e levá-los a reclamar com mais frequência.
+    """)
+
+    st.markdown("""
+    #### 4. TotalSpent (Total gasto)  
+    A soma total dos gastos em diferentes categorias mostra que quanto maior o investimento do cliente, maior sua atenção à jornada de consumo.  
+    Se o retorno percebido (produto, atendimento, entrega) não for proporcional ao valor investido, a probabilidade de reclamação aumenta.
+    """)
+
+    st.markdown("""
+    #### 5. Income (Renda)  
+    A renda familiar está relacionada ao nível de exigência e expectativa.  
+    Clientes de maior poder aquisitivo tendem a ser menos tolerantes a falhas operacionais e mais rápidos em expressar insatisfação por meio de reclamações formais.
+    """)
+
+    st.markdown("### Conclusão")
+    st.markdown("""
+    O padrão identificado revela que clientes com alto engajamento, gastos expressivos e maior expectativa são mais propensos a gerar reclamações. 
+
+    """)
+
 
 def q4_etapa5():
-    st.subheader("🛒 Q4 - e) K-Means / DBSCAN")
+    st.subheader("Q4 - e) K-Means / DBSCAN")
     st.info("Clusterização e detecção de outliers por perfil.")
+        
+ 
+    import pandas as pd
+    from sklearn.preprocessing import StandardScaler
+    from sklearn.cluster import KMeans, DBSCAN
+    import matplotlib.pyplot as plt
+
+    # Título da seção
+    st.markdown("## Análise Não Supervisionada - K-Means (Segmentação de Clientes)")
+
+    # Carregar a base
+    df4 = st.session_state.get("df4")
+    if df4 is None:
+        st.warning("⚠️ Os dados ainda não foram carregados. Execute a Etapa 2 primeiro.")
+        return
+
+    # Seleção das colunas para clusterização
+    colunas_cluster = [
+        "Income", "Kidhome", "Teenhome", "MntWines", "MntFruits",
+        "MntMeatProducts", "MntFishProducts", "MntSweetProducts",
+        "MntGoldProds", "NumDealsPurchases", "NumWebPurchases",
+        "NumCatalogPurchases", "NumStorePurchases", "NumWebVisitsMonth"
+    ]
+
+    # Remover valores ausentes
+    df_cluster = df4[colunas_cluster].dropna()
+
+    # Padronizar os dados
+    scaler = StandardScaler()
+    X_cluster = scaler.fit_transform(df_cluster)
+
+    # Calcular WCSS para diferentes valores de k
+    wcss = []
+    for k in range(1, 10):
+        kmeans = KMeans(n_clusters=k, random_state=42, n_init=10)
+        kmeans.fit(X_cluster)
+        wcss.append(kmeans.inertia_)
+
+    # Exibir o gráfico Elbow
+    st.markdown("### Método do Cotovelo")
+    fig, ax = plt.subplots(figsize=(5, 3))
+    ax.plot(range(1, 10), wcss, marker='o')
+    ax.set_xlabel("Número de Clusters (k)")
+    ax.set_ylabel("Soma dos Erros Quadráticos (WCSS)")
+    ax.set_title("Elbow - Definição do Número Ideal de Clusters")
+    ax.grid(True)
+    st.pyplot(fig)
+
+    
+        
+        # Aplicar K-Means com k=3
+    st.markdown("### Segmentação de Clientes com K-Means (k=3)")
+    st.info("Segmentação dos clientes em 3 grupos com base nos atributos selecionados.")
+    kmeans = KMeans(n_clusters=3, random_state=42, n_init=10)
+    clusters = kmeans.fit_predict(X_cluster)
+
+    # Adicionar os clusters ao dataframe original
+    df_cluster["Cluster"] = clusters
+
+    # Mostrar a contagem de clientes por cluster
+    st.markdown("### Quantidade de Clientes por Cluster")
+    st.dataframe(df_cluster["Cluster"].value_counts().rename("Clientes").reset_index().rename(columns={"index": "Cluster"}))
+
+    # Exibir médias por cluster
+    st.markdown("### Médias dos Atributos por Cluster")
+    st.dataframe(df_cluster.groupby("Cluster").mean().round(2))
+        
+    st.markdown("### Justificativa do Número de Clusters k=3")
+    st.markdown("""
+    A análise do gráfico Elbow (cotovelo) mostra uma redução acentuada na soma dos erros quadráticos (WCSS) entre os valores de **k = 1 até k = 3**. A partir de **k = 4**, a queda no WCSS se torna mais sutil, indicando que os ganhos marginais com a adição de novos clusters são pequenos.
+    Portanto, o ponto de inflexão do gráfico ocorre em **k = 3**, sugerindo que **3 clusters representam um bom compromisso entre simplicidade e capacidade explicativa do modelo**.
+    """)
+
+        
+    
+
+    # Gráfico de dispersão de dois atributos para visualização
+    st.markdown("### Visualização dos Clusters (Ex: Income vs MntWines)")
+    fig, ax = plt.subplots()
+    sns.scatterplot(data=df_cluster, x="Income", y="MntWines", hue="Cluster", palette="Set1", ax=ax)
+    ax.set_title("Segmentação dos Clientes por K-Means (k=3)")
+    st.pyplot(fig)
+        
+    st.markdown("### Interpretação dos Perfis - Agrupamento com K-Means (3 Clusters)")
+
+    st.markdown("""
+    Após aplicar o algoritmo **K-Means com 3 clusters**, foi possível identificar três grupos distintos de clientes com base em características como renda, padrão de consumo, estrutura familiar e comportamento de compra. 
+    A análise das médias dessas variáveis permitiu classificar os grupos em perfis interpretáveis do ponto de vista de negócios e segmentação de mercado.
+    """)
+
+    st.markdown("""
+    - **Cluster 0 – Perfil Médio**  
+    Clientes com **renda intermediária** (58 mil), **nível de consumo moderado** e com filhos em idade escolar e adolescentes (Kidhome: 0.23 / Teenhome: 0.93).  
+    Demonstram comportamento de compra equilibrado entre canais físicos e digitais, com boa frequência de compras online (NumWebPurchases: 6.37) e gasto razoável com vinhos e carnes.  
+    Representam um público de **classe média engajada**, com potencial de fidelização e boa aceitação a promoções.
+
+    - **Cluster 1 – Perfil Premium/Alta Renda**  
+    Grupo com **maior renda média (76 mil)** e **altíssimo consumo** em todas as categorias, especialmente vinhos (589), carnes (454) e doces (71).  
+    São clientes com **poucos filhos**, muito ativos no canal de catálogo (NumCatalogPurchases: 5.98) e lojas físicas (NumStorePurchases: 8.4).  
+    Refletem um perfil **exigente, fiel e de alto valor** para a empresa, devendo ser priorizados em estratégias de retenção e atendimento diferenciado.
+
+    - **Cluster 2 – Perfil Econômico**  
+    Apresentam a **menor renda média (35 mil)** e **baixíssimo consumo**, com destaque para vinhos (42), carnes (23) e frutas (4).  
+    Têm mais filhos (Kidhome: 0.8 / Teenhome: 0.45) e são pouco engajados em canais digitais (NumWebPurchases: 2.12), usando mais o site apenas para visita (NumWebVisitsMonth: 6.47).  
+    Representam clientes **sensíveis ao preço**, com foco em necessidades básicas e menor frequência de compra.
+    """)
+        
+    # Aplicar DBSCAN
+    dbscan = DBSCAN(eps=1.6, min_samples=5)
+    dbscan_labels = dbscan.fit_predict(X_cluster)
+    df4["DBSCAN_Cluster"] = dbscan_labels
+
+    # Exibir resultados
+    st.subheader("Detecção de Perfis Atípicos com DBSCAN")
+    st.markdown("A técnica DBSCAN foi aplicada para detectar grupos de clientes e perfis atípicos (outliers).")
+
+    # Contagem de clusters e outliers
+    outlier_count = (df4["DBSCAN_Cluster"] == -1).sum()
+    st.write("Total de registros:", len(df4))
+    st.write("Total de outliers detectados:", outlier_count)
+    st.write("Grupos encontrados (DBSCAN_Cluster):")
+    st.dataframe(df4["DBSCAN_Cluster"].value_counts().rename("Quantidade").to_frame())
+
+    st.markdown("## Integração entre Agrupamentos e Modelos Supervisionados")
+
+    st.markdown("""
+    A união entre os agrupamentos (**K-Means** e **DBSCAN**) e os modelos supervisionados forma uma abordagem mais robusta para a análise de comportamento e previsão de reclamações de clientes.
+
+    - **K-Means** auxilia na **estratificação de clientes por perfil**, permitindo identificar em quais segmentos as reclamações se concentram. Complemento à supervisão: ao observar a proporção de Complain em cada cluster, pode-se verificar quais perfis concentram mais insatisfação, mesmo que a variável não tenha sido usada no agrupamento. Isso reforça a explicação dos modelos supervisionados e permite ações direcionadas por perfil.
+
+    - **DBSCAN** contribui ao **detectar anormalidades relevantes**, como clientes com comportamento fora do padrão esperado. Esses outliers podem representar casos de frustração, desengajamento ou experiências excepcionais (positivas ou negativas).
+
+    - Os **modelos supervisionados** indicam, com boa acurácia, **quem tende a reclamar**, mas **se beneficiam ao serem interpretados em conjunto com os perfis descobertos nos clusters**, trazendo mais contexto e precisão às ações estratégicas.
+
+    ✅ Essa integração amplia a capacidade da empresa de **antecipar problemas, personalizar o atendimento e fidelizar clientes** com base em evidências estatísticas e comportamentais.
+    """)
 
 def q4_etapa6():
-    st.subheader("🛒 Q4 - f) Decisão Estratégica")
+    st.subheader("Q4 - f) Decisão Estratégica")
     st.info("Sugira melhorias com base nos insights obtidos.")
+    
+    st.markdown("### Decisões Estratégicas e Implicações para o Negócio")
 
+    st.markdown("""
+    A segmentação dos clientes em três clusters fornece **insumos estratégicos valiosos** para ações de marketing, fidelização e personalização do atendimento.
 
+    - **Cluster 1 (Premium)** deve ser o foco de **ações de fidelização e retenção personalizadas**, como programas de recompensas, atendimento exclusivo e ofertas especiais. Esses clientes possuem alto ticket médio, forte engajamento e grande potencial de geração de receita.
+
+    - **Cluster 0 (Classe Média)** representa um público com bom nível de consumo e engajamento. Estratégias como **promoções direcionadas, upgrades de produtos e cross-selling** podem aumentar ainda mais o seu valor ao longo do tempo. É um grupo estratégico para **crescimento sustentável** da base de clientes.
+
+    - **Cluster 2 (Econômico)** é mais sensível ao preço e menos engajado digitalmente. Para esse grupo, ações de **inclusão, ofertas acessíveis, campanhas educativas e canais presenciais** podem ser mais eficazes. Embora tenham menor valor individual, sua quantidade pode representar uma **base volumosa e relevante**.
+
+    A segmentação permite que a empresa **adapte sua comunicação e serviços a cada perfil**, otimizando investimentos e aumentando a satisfação do cliente. Além disso, é possível **cruzar os clusters com variáveis como reclamações e churn** para priorizar melhorias e evitar perdas de clientes estratégicos.
+    """)
+    
+    st.markdown("### Aplicações Estratégicas da Análise de Dados")
+
+    st.markdown("""
+    A análise de dados realizada oferece **insumos valiosos para a tomada de decisão estratégica**, especialmente nas seguintes frentes:
+
+    #### Retenção de Clientes
+    - A identificação de perfis mais propensos a reclamar permite **ações preventivas**, como contato proativo, ofertas de fidelização ou acompanhamento personalizado.
+    - Clusters com maior taxa de insatisfação podem ser alvo de **programas de engajamento** específicos para evitar o churn.
+
+    #### Melhoria do Suporte ao Cliente
+    - Variáveis como idade, renda e canais de compra ajudam a **adaptar o atendimento ao perfil do cliente**.
+    - Clientes premium ou com alto ticket médio devem receber **suporte prioritário e especializado**, aumentando a satisfação e o valor percebido.
+
+    #### Personalização de Produtos e Serviços
+    - A segmentação permite **criar campanhas de marketing personalizadas**, com base em hábitos de consumo (ex: vinhos, carnes, catálogo).
+    - Estratégias diferenciadas podem ser definidas para cada grupo identificado (econômico, médio, premium), aumentando a **eficácia das ações comerciais**.
+
+    ✅ Em resumo, a combinação de modelos preditivos e agrupamentos não supervisionados fornece uma visão ampla e acionável sobre o comportamento do cliente, permitindo uma **gestão mais inteligente da base de clientes** e **aumento da competitividade no mercado**.
+    """)
+
+        
+    
 
 
 # =============================
