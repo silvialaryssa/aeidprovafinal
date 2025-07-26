@@ -549,7 +549,14 @@ def q2_etapa1():
     st.markdown("### Preview dos Dados")
     st.dataframe(df2.head())
     
- 
+    
+    # descrever cada coluna
+   # st.markdown("### Dicionário de Variáveis")
+   # for col in df2.columns:
+    #       st.markdown(f"**{col}**: {df2[col].dtype}")
+    # fazer a tradução de cada coluna do df2
+
+
     # Definindo os dados da tabela
     dados = {
         "Variável": [
@@ -640,7 +647,31 @@ def q2_etapa1():
         'required_car_parking_spaces', 'total_of_special_requests'
     ]
    
+    #st.markdown("### 📊 Histogramas das Variáveis Numéricas por Cancelamento")
 
+    #charts = []
+    #for col in cols_numericas:
+    #    chart = alt.Chart(df2).mark_bar(opacity=0.7).encode(
+    #        x=alt.X(f'{col}:Q', bin=alt.Bin(maxbins=30), title=col),
+    #        y=alt.Y('count()', title='Frequência'),
+    #        color=alt.Color('is_canceled:N', title='Cancelamento')
+    #    ).properties(
+    #        title=f'{col} - Distribuição por Cancelamento',
+    #        width=300,
+    #        height=250
+    #    )
+    #    charts.append(chart)
+
+    # Exibir os gráficos em 3 colunas
+    #num_cols = 3
+    #rows = [charts[i:i+num_cols] for i in range(0, len(charts), num_cols)]
+
+    #for row in rows:
+    #    cols = st.columns(num_cols)
+    #    for col_chart, col_container in zip(row, cols):
+    #        with col_container:
+    #            st.altair_chart(col_chart, use_container_width=True)
+    
     
      # Mapear cancelamentos para facilitar leitura nos gráficos
     df2['cancelamento'] = df2['is_canceled'].map({0: 'Não Cancelada', 1: 'Cancelada'})
@@ -1020,47 +1051,22 @@ def q2_etapa3():
         st.subheader("Análise Final das Principais Variáveis")
 
         st.markdown("""
-        ### 🔺 Cinco variáveis que mais **aumentam** a chance de cancelamento:
+        **Cinco variáveis que mais aumentam a chance de cancelamento:**
+        1. **lead_time:** Reservas feitas com muita antecedência têm maior risco de cancelamento.
+        2. **previous_cancellations:** Hóspedes com histórico prévio de cancelamentos tendem a cancelar novamente.
+        3. **market_segment_Undefined:** Reservas de segmento indefinido apresentam mais risco de cancelamento.
+        4. **customer_type_Transient:** Hóspedes transitórios são mais propensos ao cancelamento.
+        5. **market_segment_Complementary:** Reservas complementares (gratuitas ou promocionais) têm mais chance de serem canceladas.
 
-        1. **`deposit_type_Non Refund`**  
-        Depósitos não reembolsáveis estão associadas a uma **alta chance de cancelamento negativo** (impacto negativo forte no modelo), ou seja, sua ausência pode elevar o risco.
+        **Cinco variáveis que mais reduzem a chance de cancelamento:**
+        1. **required_car_parking_spaces:** Necessidade de vaga de estacionamento está associada à menor chance de cancelamento.
+        2. **total_of_special_requests:** Mais pedidos especiais significam menor risco de cancelamento.
+        3. **deposit_type_Non Refund:** Depósitos não reembolsáveis praticamente impedem cancelamentos.
+        4. **customer_type_Group:** Hóspedes em grupo tendem a cancelar menos.
+        5. **(Outra variável relevante, como booking_changes):** Mudanças na reserva podem indicar maior comprometimento e, portanto, menor risco de cancelamento.
 
-        2. **`required_car_parking_spaces`**  
-        Quanto **menos necessidade de vaga de estacionamento**, maior a probabilidade de o cliente cancelar — sugerindo menor comprometimento.
-
-        3. **`market_segment_Offline TA/TO`**  
-        Reservas feitas por agências offline parecem estar mais ligadas a cancelamentos.
-
-        4. **`deposit_type_Refundable`**  
-        A opção de **reembolso** facilita o cancelamento, aumentando sua probabilidade.
-
-        5. **`market_segment_Groups`**  
-        Embora grupos sejam geralmente mais estáveis, nesse caso específico os dados indicam **maior risco de cancelamento**, talvez por volume ou incerteza logística.
-
-        ---
-
-        ### 🔻 Cinco variáveis que mais **reduzem** a chance de cancelamento:
-
-        1. **`lead_time`**  
-        Reservas feitas com bastante antecedência estão **menos propensas a serem canceladas**, indicando planejamento.
-
-        2. **`customer_type_Transient`**  
-        Hóspedes de tipo transitório demonstram **baixo risco de cancelamento**, talvez por viagens rápidas e com datas fixas.
-
-        3. **`previous_cancellations`**  
-        Curiosamente, clientes com histórico anterior **têm menor peso negativo aqui**, indicando que talvez tenham retornado com mais compromisso.
-
-        4. **`market_segment_Complementary`**  
-        Reservas promocionais ou gratuitas apresentam **menor risco de cancelamento**, talvez por serem incentivos vinculados a eventos específicos.
-
-        5. **`distribution_channel_Undefined`**  
-        Quando o canal de distribuição não é especificado, o modelo entende que há **menos risco de cancelamento**, possivelmente por padrão de preenchimento.
-
-        ---
-
-        Essas variáveis ajudam a identificar **perfis de clientes, canais e reservas** com maior ou menor probabilidade de cancelamento, permitindo **ações preventivas** e estratégias comerciais mais eficazes.
+        Essas variáveis ajudam a identificar perfis de reservas e hóspedes mais propensos ao cancelamento, permitindo ações preventivas por parte do hotel.
         """)
-
 
         
         
@@ -1298,11 +1304,11 @@ def verificar_pressupostos_anova(df, var_resposta, fator_categ='Country'):
     import statsmodels.formula.api as smf
     import statsmodels.api as sm
     from statsmodels.stats.diagnostic import het_breuschpagan
-    from scipy.stats import shapiro, zscore, kstest
+    from scipy.stats import shapiro
     import matplotlib.pyplot as plt
     import seaborn as sns
 
-    st.subheader(f"Verificação dos Pressupostos da ANOVA - {var_resposta} ~ {fator_categ}")
+    st.subheader(f"🔍 Verificação dos Pressupostos da ANOVA - {var_resposta} ~ {fator_categ}")
 
     # Ajustar modelo
     formula = f"{var_resposta} ~ C({fator_categ})"
@@ -1313,10 +1319,11 @@ def verificar_pressupostos_anova(df, var_resposta, fator_categ='Country'):
     violou_normalidade = False
     violou_homocedasticidade = False            
 
+    # 1️⃣ Normalidade dos resíduos
+    st.subheader("1️⃣ Normalidade dos Resíduos (Q-Q Plot + Shapiro-Wilk)")
+ # 2️⃣ Homocedasticidade com Breusch-Pagan
+    st.subheader("2️⃣ Homocedasticidade (Breusch-Pagan + Gráfico de Resíduos)")
     
-    #  Normalidade dos resíduos
-    st.subheader("1️ Normalidade dos Resíduos (Q-Q Plot + Kolmogorov-Smirnov)")
-
     # Criar um container estreito com colunas
     col1, col2, col3 = st.columns([1, 2, 1])  # centraliza
 
@@ -1326,16 +1333,13 @@ def verificar_pressupostos_anova(df, var_resposta, fator_categ='Country'):
         ax.set_title("Q-Q Plot dos Resíduos", fontsize=10)
         st.pyplot(fig)
 
-    # Aplicar o teste Kolmogorov-Smirnov com resíduos padronizados
-    residuos_padronizados = zscore(residuos)
-    ks_stat, ks_p = kstest(residuos_padronizados, 'norm')
-
-    if ks_p < 0.05:
+    shapiro_stat, shapiro_p = shapiro(residuos)
+    if shapiro_p < 0.05:
         violou_normalidade = True
-        st.warning("Essa versão evita o alerta do Shapiro para N > 5000 e é mais apropriada para grandes amostras.")
-        st.warning(f"❗ Kolmogorov-Smirnov indica violação da normalidade (U)(p = {ks_p:.4f})")
+        st.warning(f"❗ Shapiro-Wilk indica violação da normalidade (p = {shapiro_p:.4f})")
     else:
-        st.success(f"✅ Resíduos seguem distribuição normal (Kolmogorov-Smirnov p = {ks_p:.4f})")
+        st.success(f"✅ Resíduos seguem distribuição normal (Shapiro-Wilk p = {shapiro_p:.4f})")
+
    
 
     # Layout com colunas para centralizar e limitar largura
@@ -1365,7 +1369,7 @@ def verificar_pressupostos_anova(df, var_resposta, fator_categ='Country'):
         st.success("✅ Homocedasticidade verificada (p ≥ 0.05)")
 
     # Diagnóstico final
-    st.subheader("Diagnóstico Final dos Pressupostos")
+    st.subheader("🚨 Diagnóstico Final dos Pressupostos")
     if violou_normalidade or violou_homocedasticidade:
         st.error("⚠️ Um ou mais pressupostos da ANOVA foram violados. Considere usar testes não paramétricos : teste de Kruskal-Wallis.")
     else:
@@ -2100,20 +2104,7 @@ def q4_etapa6():
 # =============================
 st.set_page_config(page_title="📊 Prova Final - Análise Estatística", layout="wide")
 st.title("📚 Prova Final - Análise Estatística de Dados e Informações")
-st.markdown("Desenvolvido por: [Silvia Laryssa Branco da Silva] &nbsp;&nbsp;&nbsp;&nbsp;📅 Julho 2025")
-st.markdown("""
-### 📄 Acesse a prova final
-
-Clique no link abaixo para visualizar e interagir com o painel da prova final:
-
-🔗 [👉 AIED - Prova Final: ](https://aiedprovafinal.streamlit.app/)
-""")
-st.markdown("""
-### 📊 Descrição do App
-O aplicativo tem como objetivo fornecer uma plataforma interativa para a realização da prova final de Análise Estatística de Dados e Informações. Os usuários podem explorar diferentes técnicas estatísticas, visualizar resultados e obter insights a partir de dados simulados.
-
-""")
-
+st.markdown("👩‍🎓 Desenvolvido por: [Silvia Laryssa Branco da Silva] &nbsp;&nbsp;&nbsp;&nbsp;📅 Julho 2025")
 
 # MENU LATERAL
 with st.sidebar:

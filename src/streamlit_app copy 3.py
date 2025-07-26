@@ -38,6 +38,16 @@ def carregar_dados(uploaded_file=None):
     else:
         return pd.read_csv(DEFAULT_FILE)
 
+def upload_multiplos_datasets(questoes):
+    st.sidebar.markdown("### 📁 Upload de Arquivos por Questão")
+    arquivos = {}
+    for questao in questoes:
+        arquivos[questao] = st.sidebar.file_uploader(
+            f"🔹 Arquivo para {questao}", type=["csv"], key=f"upload_{questao}"
+        )
+    return arquivos
+
+
 
 def avaliar_pressupostos(X, y_true, y_pred):
   #########################
@@ -126,7 +136,7 @@ def remover_outliers_iqr(df, colunas=None, threshold=1.5):
 def q1_etapa1():
     st.markdown("---")
     def exibir_dicionario_variaveis():
-        st.markdown("### Dicionário de Variáveis")
+        st.markdown("### 📘 Dicionário de Variáveis")
         st.markdown("""
         | Coluna            | Tradução                        | Descrição                                                                 |
         |-------------------|----------------------------------|---------------------------------------------------------------------------|
@@ -153,23 +163,23 @@ def q1_etapa1():
         | `sqft_lot15`      | Área dos terrenos vizinhos      | Média do tamanho dos lotes das 15 casas mais próximas                     |
             """)
         
-    st.header("Q1 - 1 - Regressão Linear - Análise Descritiva dos Dados")
+    st.subheader("Q1 - 1 - Regressão Linear - Análise Descritiva dos Dados")
     exibir_dicionario_variaveis()
     uploaded_file = 'src/kc_house_data.csv'
 
     df = carregar_dados(uploaded_file)
     st.session_state["kc_df"] = df
-    #st.success("✅ Arquivo carregado com sucesso!")
+    st.success("✅ Arquivo carregado com sucesso!")
 
     #st.markdown("### 🔍 Preview dos Dados")
     #st.dataframe(df.head())
     #st.dataframe(df)
 
-    st.markdown("### Estatísticas Descritivas")
+    st.markdown("### 📊 Estatísticas Descritivas")
     st.dataframe(df.describe())
 
-    #st.markdown("### Mediana das Variáveis Numéricas")
-    #st.dataframe(df.median(numeric_only=True))
+    st.markdown("### Mediana das Variáveis Numéricas")
+    st.dataframe(df.median(numeric_only=True))
 
     if "price" in df.columns:
         # excluindo as variaves id e zipcod
@@ -178,79 +188,53 @@ def q1_etapa1():
         #st.write(correlacoes)
 
         st.markdown("### Mapa de Correlação")
-        st.subheader("Interpretação do Mapa de Correlação")
-
-        st.markdown("""
-        O mapa mostra que **área útil (`sqft_living`)** e **qualidade da construção (`grade`)** são as variáveis mais fortemente ligadas ao preço dos imóveis.  
-        Por outro lado, variáveis como **condição (`condition`)** e **ano de construção (`yr_built`)** apresentam baixa correlação linear com o preço, o que sugere uma influência limitada na modelagem por regressão linear.
-
-        Além disso, algumas variáveis estão fortemente correlacionadas entre si, como `sqft_living` e `sqft_above`, indicando a necessidade de atenção à **multicolinearidade** ao construir o modelo preditivo.
-        """)
-
-        # Plotar o mapa de correlação
         plt.figure(figsize=(10, 8))
         # excluindo as variaves id e zipcod
         sns.heatmap(df.drop(columns=["id"], errors='ignore').corr(numeric_only=True), annot=True, fmt=".2f", cmap="coolwarm")
         st.pyplot(plt.gcf())
         plt.clf()
-    
-  
-        st.markdown(r"""
-        A base de dados apresenta **21.613 imóveis** registrados na região de King County, nos EUA, com **21 variáveis** sobre características físicas, localização e preços.
+        
 
-        ### 🔹 Variável Alvo: `price`
-        - **Média**: aproximadamente \$540.088  
-        - **Mediana**: \$450.000  
-        - **Desvio padrão**: \$367.127  
-        - A distribuição é **assimétrica à direita**, indicando a presença de imóveis de alto padrão que elevam a média.
-        """)
+    st.markdown("### 📈 Distribuição de Variáveis")
+    cols_to_plot = st.multiselect(
+        "Selecione variáveis numéricas:",
+        df.select_dtypes(include='number').columns.tolist(),
+        default=["price", "sqft_living","bathrooms","waterfront","view","condition","grade"]
+    )
 
+    charts = []
+    for col in cols_to_plot:
+        base = alt.Chart(df).mark_bar(opacity=0.7).encode(
+            alt.X(f"{col}:Q", bin=alt.Bin(maxbins=30), title=col),
+            y='count()',
+            tooltip=[col]
+        ).properties(
+            width=250,
+            height=200,
+            title=f"Distribuição: {col}"
+        )
 
+        kde = alt.Chart(df).transform_density(
+            col,
+            as_=[col, 'density'],
+        ).mark_line(color='red').encode(
+            x=col,
+            y='density:Q'
+        )
 
-    
-    # ----------- HISTOGRAMAS INTERATIVOS -----------
-    st.subheader("🔹 Histogramas das Variáveis")
+        chart = base + kde  # sobrepõe a densidade
+        charts.append(chart)
 
-    cols_hist = ['price', 'sqft_living', 'bedrooms', 'bathrooms', 'floors', 'sqft_above', 'sqft_basement']
-
-    selected_hist = st.multiselect("Selecione variáveis numéricas para visualizar histogramas:", options=cols_hist)
-
-    if not selected_hist:
+    if charts:
+        st.altair_chart(alt.hconcat(*charts), use_container_width=True)
+    else:
         st.info("Selecione ao menos uma variável para visualizar.")
-    else:
-        for col in selected_hist:
-            st.subheader(f"Distribuição de {col}")
-            chart = alt.Chart(df).mark_bar(opacity=0.7, color='steelblue').encode(
-                alt.X(col, bin=alt.Bin(maxbins=40), title=col),
-                y='count()',
-                tooltip=[col]
-            ).properties(width=600, height=300)
-            st.altair_chart(chart, use_container_width=True)
-
-    # ----------- BOXPLOTS INTERATIVOS -----------
-    st.header("📦 Boxplots: Preço vs Variáveis Categóricas")
-
-    cols_box = ['bedrooms', 'bathrooms', 'floors']
-    selected_box = st.multiselect("Selecione variáveis para comparar com o preço:", options=cols_box)
-
-    if not selected_box:
-        st.info("Selecione ao menos uma variável para visualizar boxplots.")
-    else:
-        for col in selected_box:
-            st.subheader(f"Preço vs {col}")
-            chart = alt.Chart(df).mark_boxplot(extent='min-max').encode(
-                x=alt.X(f'{col}:O', title=col),
-                y=alt.Y('price:Q', scale=alt.Scale(type='log'), title='Preço (escala log)'),
-                tooltip=['price', col]
-            ).properties(width=600, height=300)
-            st.altair_chart(chart, use_container_width=True)
-
-# =============================
-
+    
+    
 #
 def q1_etapa2():
     st.markdown("---")
-    st.header("Q1 - 2 - Regressao lienar Modelo de Regressão Linear")
+    st.subheader("🏠 Q1 - 2 - Regressao lienar Modelo de Regressão Linear")
     st.info("Crie o modelo de regressão linear com métricas de desempenho.")
 
     df = st.session_state.get("kc_df")
@@ -319,7 +303,7 @@ def q1_etapa2():
 
 def q1_etapa3():
     st.markdown("---")
-    st.header("Q1 - 3️⃣ Interpretação dos Resultados")
+    st.subheader("🏠 Q1 - 3️⃣ Interpretação dos Resultados")
     if "X_test" in st.session_state and "y_test" in st.session_state and "y_pred" in st.session_state:
         X = st.session_state["X_test"]
         y = st.session_state["y_test"]
@@ -332,7 +316,7 @@ def q1_etapa3():
 
 def q1_etapa4():
     st.markdown("---")
-    st.header("4️⃣ Ajustes no Modelo")
+    st.subheader("🏠 Q1 - 4️⃣ Ajustes no Modelo")
     df = st.session_state.get("kc_df")
     if df is None:
         st.warning("⚠️ Os dados ainda não foram carregados. Execute a Etapa 1 primeiro.")
@@ -419,7 +403,7 @@ def q1_etapa4():
 
 
 def q1_etapa5():
-    st.header("Q1 - 5️⃣ Tomada de Decisão")
+    st.subheader("🏠 Q1 - 5️⃣ Tomada de Decisão")
     st.info("Descreva aplicações práticas do modelo no contexto de negócio.")
     
     st.markdown("## 📌 Análise da Questão 1 – Regressão Linear")
@@ -499,26 +483,24 @@ def criar_coluna_arrival_date(df):
         'September': 9, 'October': 10, 'November': 11, 'December': 12
     }
     # Converter os nomes dos meses para número
-    df = df.copy()
     df['arrival_month_num'] = df['arrival_date_month'].map(meses)
     
     # Criar a coluna de data de chegada
-   # df['arrival_date'] = pd.to_datetime(
-   #     df['arrival_date_year'].astype(str) + '-' +
-   #     df['arrival_month_num'].astype(str).str.zfill(2) + '-' +
-   #     df['arrival_date_day_of_month'].astype(str).str.zfill(2)
-   # )
+    df['arrival_date'] = pd.to_datetime(
+        df['arrival_date_year'].astype(str) + '-' +
+        df['arrival_month_num'].astype(str).str.zfill(2) + '-' +
+        df['arrival_date_day_of_month'].astype(str).str.zfill(2)
+    )
     
     #st.write(df["arrival_date"])
     
      # Cria coluna booking_date (data da reserva)
-    #df['booking_date'] = df['arrival_date'] - pd.to_timedelta(df['lead_time'], unit='D')
-    #df.loc[:, 'booking_date'] = df['arrival_date'] - pd.to_timedelta(df['lead_time'], unit='D')
+    df['booking_date'] = df['arrival_date'] - pd.to_timedelta(df['lead_time'], unit='D')
     
      #excluir arrival_date_year, arrival_date_month, arrival_date_week_number, arrival_date_day_of_month
     #variaves foram substituídas por arrival_date
 
-    #df = df.drop(columns=["arrival_date_year", "arrival_date_month", "arrival_date_week_number", "arrival_date_day_of_month"], errors='ignore')
+    df = df.drop(columns=["arrival_date_year", "arrival_date_month", "arrival_date_week_number", "arrival_date_day_of_month"], errors='ignore')
 
     return df
 
@@ -528,28 +510,33 @@ def pre_processamento(df):
     """
     # Remove duplicatas
     df = df.drop_duplicates()
-    #df = criar_coluna_arrival_date(df)
-    #df["arrival_date"] = pd.to_datetime(df["arrival_date"], errors='coerce')
-    #df['arrival_date'] = pd.to_datetime(df['arrival_date']).dt.round('ms')  # ou 's' para segundos
-    #df['booking_date'] = pd.to_datetime(df['booking_date'], errors='coerce')
+    df = criar_coluna_arrival_date(df)
+    df.drop(columns=['arrival_month_num'], inplace=True)
     
     return df
 
 
 
 def q2_etapa1():
-    st.header("Q2 - a) Análise Descritiva dos Dados")
+    st.subheader("🏨 Q2 - a) Análise Descritiva dos Dados")
     st.info("Realize uma análise descritiva da base de dados.")
     uploaded_file = 'src/hotel_bookings.csv'
     # Carregar os dados
 
     df2 = carregar_dados(uploaded_file)
     st.session_state["hb_df"] = df2
-    #st.success("✅ Arquivo carregado com sucesso!")
-    st.markdown("### Preview dos Dados")
+    st.success("✅ Arquivo carregado com sucesso!")
+    st.markdown("### 🔍 Preview dos Dados")
     st.dataframe(df2.head())
     
- 
+    
+    # descrever cada coluna
+    st.markdown("### 📘 Dicionário de Variáveis")
+   # for col in df2.columns:
+    #       st.markdown(f"**{col}**: {df2[col].dtype}")
+    # fazer a tradução de cada coluna do df2
+
+
     # Definindo os dados da tabela
     dados = {
         "Variável": [
@@ -560,7 +547,7 @@ def q2_etapa1():
             "previous_bookings_not_canceled", "reserved_room_type", "assigned_room_type",
             "booking_changes", "deposit_type", "agent", "company", "days_in_waiting_list",
             "customer_type", "adr", "required_car_parking_spaces", "total_of_special_requests",
-            "reservation_status", "reservation_status_date", "booking_date"
+            "reservation_status", "reservation_status_date", "arrival_date", "booking_date"
         ],
         "Tipo": [
             "Categórica", "Binária", "Numérica", "Numérica (inteira)", "Categórica",
@@ -569,7 +556,7 @@ def q2_etapa1():
             "Categórica", "Categórica", "Categórica", "Binária", "Numérica (inteira)",
             "Numérica (inteira)", "Categórica", "Categórica", "Numérica (inteira)", "Categórica",
             "Categórica", "Categórica", "Numérica (inteira)", "Categórica", "Numérica (float)",
-            "Numérica (inteira)", "Numérica (inteira)", "Categórica", "Data","Data"
+            "Numérica (inteira)", "Numérica (inteira)", "Categórica", "Data","Data","Data"
         ],
         "Descrição": [
             "Tipo de hotel (ex: Resort, City)",
@@ -604,6 +591,7 @@ def q2_etapa1():
             "Total de pedidos especiais",
             "Status final da reserva (Check-Out, Canceled, No-Show)",
             "Data do status final da reserva",
+            "Data chegada",
             "Data da reserva"
         ]
     }
@@ -617,20 +605,15 @@ def q2_etapa1():
 
     # pre processamento
     df2 = pre_processamento(df2)
-    
-    
     st.session_state["hb_df"] = df2
     st.success("✅ Pré-processamento concluído - Excluindo duplicadas se houver")
     #st.markdown("### 🔍 Preview dos Dados apos Inclusao da coluna data arrival_date e exclusao das colunas de data")
     #st.dataframe(df2.head())
     
     st.markdown("### 📊 Estatísticas Descritivas")
-    st.subheader("Resumo Estatístico")
-    st.dataframe(df2.describe())
- 
-     # Limpar colunas irrelevantes
-    df2 = df2.drop(columns=['RowNumber', 'CustomerId', 'Surname'], errors='ignore')
-    
+    #st.dataframe(df2.describe())
+    st.markdown("### 🧮 Mediana das Variáveis Numéricas")
+    st.dataframe(df2.select_dtypes(include='number').median())
     
     # graficos de distribuição
     cols_numericas = [
@@ -640,65 +623,33 @@ def q2_etapa1():
         'required_car_parking_spaces', 'total_of_special_requests'
     ]
    
+    st.markdown("### 📊 Histogramas das Variáveis Numéricas por Cancelamento")
+
+    charts = []
+    for col in cols_numericas:
+        chart = alt.Chart(df2).mark_bar(opacity=0.7).encode(
+            x=alt.X(f'{col}:Q', bin=alt.Bin(maxbins=30), title=col),
+            y=alt.Y('count()', title='Frequência'),
+            color=alt.Color('is_canceled:N', title='Cancelamento')
+        ).properties(
+            title=f'{col} - Distribuição por Cancelamento',
+            width=300,
+            height=250
+        )
+        charts.append(chart)
+
+    # Exibir os gráficos em 3 colunas
+    num_cols = 3
+    rows = [charts[i:i+num_cols] for i in range(0, len(charts), num_cols)]
+
+    for row in rows:
+        cols = st.columns(num_cols)
+        for col_chart, col_container in zip(row, cols):
+            with col_container:
+                st.altair_chart(col_chart, use_container_width=True)
+
 
     
-     # Mapear cancelamentos para facilitar leitura nos gráficos
-    df2['cancelamento'] = df2['is_canceled'].map({0: 'Não Cancelada', 1: 'Cancelada'})
-    
-    
-
-    # Calcular contagem e porcentagem
-    contagem = df2['cancelamento'].value_counts()
-    porcentagem = df2['cancelamento'].value_counts(normalize=True) * 100
-
-    # Criar tabela
-    tabela = pd.DataFrame({
-        'Status da Reserva': contagem.index,
-        'Quantidade': contagem.values,
-        'Porcentagem (%)': porcentagem.values.round(2)
-    })
-
-    # Exibir resultado
-    st.subheader("Quantidade e Porcentagem de Cancelamentos")
-    st.dataframe(tabela)
-    
-    
-
-    st.subheader("Distribuição das Reservas (Canceladas vs. Não Canceladas)")
-    fig1, ax1 = plt.subplots()
-    sns.countplot(data=df2, x='cancelamento', ax=ax1)
-    ax1.set_title("Distribuição de Cancelamentos")
-    st.pyplot(fig1)
-
-    st.subheader("Tipo de Hotel vs Cancelamento")
-    fig2, ax2 = plt.subplots()
-    sns.countplot(data=df2, x='hotel', hue='cancelamento', ax=ax2)
-    ax2.set_title("Cancelamentos por Tipo de Hotel")
-    st.pyplot(fig2)
-
-    st.subheader("Tempo de Antecedência (Lead Time) por Cancelamento")
-    fig3, ax3 = plt.subplots()
-    sns.boxplot(data=df2, x='cancelamento', y='lead_time', ax=ax3)
-    ax3.set_title("Lead Time por Status de Cancelamento")
-    st.pyplot(fig3)
-
-
-    st.subheader("Distribuição de Reservas por Mês")
-    fig4, ax4 = plt.subplots(figsize=(10, 4))
-    order_months = ['January', 'February', 'March', 'April', 'May', 'June',
-                    'July', 'August', 'September', 'October', 'November', 'December']
-    sns.countplot(data=df2, x='arrival_date_month', order=order_months, hue='cancelamento', ax=ax4)
-    ax4.set_title("Reservas por Mês (com Cancelamentos)")
-    plt.xticks(rotation=45)
-    st.pyplot(fig4)
-
-    st.subheader("Considerações Finais da Análise Descritiva")
-    st.markdown(r"""
-    Com base nos gráficos apresentados, observa-se que aproximadamente 27,49% das reservas foram canceladas, enquanto 72,51% foram efetivadas, o que revela uma taxa de cancelamento relevante no conjunto de dados. A análise por tipo de hotel mostra que o City Hotel apresenta maior volume absoluto de cancelamentos em comparação ao Resort Hotel, refletindo também sua maior participação no total de reservas. Além disso, há uma variação expressiva ao longo do ano: os meses de julho e agosto concentram o maior volume de reservas e de cancelamentos, sugerindo que a alta temporada influencia diretamente o comportamento de churn.
-
-    Outro fator importante identificado é o tempo de antecedência da reserva (lead time). As reservas que foram canceladas apresentam, em média, um lead time maior que as reservas mantidas, o que indica que clientes que reservam com muita antecedência têm maior probabilidade de cancelar. Esse insight pode ser utilizado para definir políticas comerciais mais eficientes, como tarifas não reembolsáveis, programas de fidelização ou ações promocionais segmentadas, contribuindo para a redução da taxa de cancelamentos e para o aumento da previsibilidade operacional.
-    """)
-
 
 def q2_etapa2():
     
@@ -715,7 +666,7 @@ def q2_etapa2():
     import altair as alt
     
     
-    st.header("Q2 - b) Modelo de Regressão Logística")
+    st.subheader("🏨 Q2 - b) Modelo de Regressão Logística")
     st.info("Construa o modelo de regressão logística e avalie seu desempenho.")
 
     df2 = st.session_state.get("hb_df")
@@ -976,15 +927,15 @@ def q2_etapa2():
             "Média harmônica entre precisão e recall, indicando bom equilíbrio."
         ]
     })
-    
-    st.subheader("Explicação das Métricas do Modelo de Regressão Logística")
+  
+    st.markdown("Explicação")
     st.dataframe(metricas)
 
      
      
 def q2_etapa3():
         st.markdown("---")
-        st.header("Q2 - c) Análise das Features")
+        st.subheader("🏨 Q2 - c) Análise das Features")
         st.info("Analise a importância das variáveis no modelo de regressão logística.")
 
         df2 = st.session_state.get("hb_df")
@@ -1020,53 +971,28 @@ def q2_etapa3():
         st.subheader("Análise Final das Principais Variáveis")
 
         st.markdown("""
-        ### 🔺 Cinco variáveis que mais **aumentam** a chance de cancelamento:
+        **Cinco variáveis que mais aumentam a chance de cancelamento:**
+        1. **lead_time:** Reservas feitas com muita antecedência têm maior risco de cancelamento.
+        2. **previous_cancellations:** Hóspedes com histórico prévio de cancelamentos tendem a cancelar novamente.
+        3. **market_segment_Undefined:** Reservas de segmento indefinido apresentam mais risco de cancelamento.
+        4. **customer_type_Transient:** Hóspedes transitórios são mais propensos ao cancelamento.
+        5. **market_segment_Complementary:** Reservas complementares (gratuitas ou promocionais) têm mais chance de serem canceladas.
 
-        1. **`deposit_type_Non Refund`**  
-        Depósitos não reembolsáveis estão associadas a uma **alta chance de cancelamento negativo** (impacto negativo forte no modelo), ou seja, sua ausência pode elevar o risco.
+        **Cinco variáveis que mais reduzem a chance de cancelamento:**
+        1. **required_car_parking_spaces:** Necessidade de vaga de estacionamento está associada à menor chance de cancelamento.
+        2. **total_of_special_requests:** Mais pedidos especiais significam menor risco de cancelamento.
+        3. **deposit_type_Non Refund:** Depósitos não reembolsáveis praticamente impedem cancelamentos.
+        4. **customer_type_Group:** Hóspedes em grupo tendem a cancelar menos.
+        5. **(Outra variável relevante, como booking_changes):** Mudanças na reserva podem indicar maior comprometimento e, portanto, menor risco de cancelamento.
 
-        2. **`required_car_parking_spaces`**  
-        Quanto **menos necessidade de vaga de estacionamento**, maior a probabilidade de o cliente cancelar — sugerindo menor comprometimento.
-
-        3. **`market_segment_Offline TA/TO`**  
-        Reservas feitas por agências offline parecem estar mais ligadas a cancelamentos.
-
-        4. **`deposit_type_Refundable`**  
-        A opção de **reembolso** facilita o cancelamento, aumentando sua probabilidade.
-
-        5. **`market_segment_Groups`**  
-        Embora grupos sejam geralmente mais estáveis, nesse caso específico os dados indicam **maior risco de cancelamento**, talvez por volume ou incerteza logística.
-
-        ---
-
-        ### 🔻 Cinco variáveis que mais **reduzem** a chance de cancelamento:
-
-        1. **`lead_time`**  
-        Reservas feitas com bastante antecedência estão **menos propensas a serem canceladas**, indicando planejamento.
-
-        2. **`customer_type_Transient`**  
-        Hóspedes de tipo transitório demonstram **baixo risco de cancelamento**, talvez por viagens rápidas e com datas fixas.
-
-        3. **`previous_cancellations`**  
-        Curiosamente, clientes com histórico anterior **têm menor peso negativo aqui**, indicando que talvez tenham retornado com mais compromisso.
-
-        4. **`market_segment_Complementary`**  
-        Reservas promocionais ou gratuitas apresentam **menor risco de cancelamento**, talvez por serem incentivos vinculados a eventos específicos.
-
-        5. **`distribution_channel_Undefined`**  
-        Quando o canal de distribuição não é especificado, o modelo entende que há **menos risco de cancelamento**, possivelmente por padrão de preenchimento.
-
-        ---
-
-        Essas variáveis ajudam a identificar **perfis de clientes, canais e reservas** com maior ou menor probabilidade de cancelamento, permitindo **ações preventivas** e estratégias comerciais mais eficazes.
+        Essas variáveis ajudam a identificar perfis de reservas e hóspedes mais propensos ao cancelamento, permitindo ações preventivas por parte do hotel.
         """)
-
 
         
         
 def q2_etapa4():
     st.markdown("---")
-    st.header("Q2 - d) Justificativa do Método")
+    st.subheader("🏨 Q2 - d) Justificativa do Método")
     st.info("Discuta a escolha do modelo de regressão logística.")
 
     df2 = st.session_state.get("hb_df")
@@ -1096,7 +1022,7 @@ def q2_etapa4():
 # 🔧 Funções - Questão 3
 # =============================
 def q3_etapa1():
-    st.header("Q3 - a) Análise Descritiva")
+    st.subheader("🌍 Q3 - a) Análise Descritiva")
     st.info("Explore dados por país, quantidade e preço.")
         
         # Carregar a planilha (ou use df se já estiver carregado)
@@ -1125,29 +1051,56 @@ def q3_etapa1():
     # Filtrar apenas colunas com pelo menos 1 valor ausente
     tabela_ausentes = tabela_ausentes[tabela_ausentes['Valores Ausentes'] > 0]
 
+    # Exibir
+    print("📉 Valores Ausentes por Coluna:")
+    print(tabela_ausentes.sort_values(by="Percentual (%)", ascending=False))
+    
     # mostrar valores ausentes no streamlit
-    st.markdown("### Valores Ausentes por Coluna")
+    st.markdown("### 📉 Valores Ausentes por Coluna")
     st.dataframe(tabela_ausentes.sort_values(by="Percentual (%)", ascending=False))
-     
+    
+    
     # Exibir o DataFrame original
-    st.markdown("### Preview dos Dados")
-    st.dataframe(df.head())
+    st.markdown("### 📊 Preview dos Dados")
+    st.dataframe(df)
     # Exibir estatísticas descritivas
-    st.markdown("### Estatísticas Descritivas")
+    st.markdown("### 📈 Estatísticas Descritivas")
     st.dataframe(df.describe())
     
+    
+    # Amostragem de 100 mil registros para acelerar a visualização
+   # df_amostra = df.sample(n=100_000, random_state=42)
 
-    # 4. Gráficos de distribuição
-    st.subheader("📈 Distribuições")
+    #vendas_pais = df_amostra.groupby("Country")["Price"].sum().reset_index()
+    #vendas_pais = vendas_pais.sort_values(by="Price", ascending=False)
 
-    # 6. Evolução temporal
-    st.subheader("📅 Evolução Temporal das Vendas")
-    df['InvoiceDate'] = pd.to_datetime(df['InvoiceDate'])
-    df['Mês'] = df['InvoiceDate'].dt.to_period('M').astype(str)
-    vendas_mes = df.groupby("Mês")['Quantity'].sum().reset_index()
-    st.line_chart(vendas_mes.set_index("Mês"))
-        
-   
+    st.markdown("### 📊 Distribuição de Vendas por País (com amostragem)")
+    st.dataframe(df.groupby("Country")["Price"].sum().reset_index().sort_values(by="Price", ascending=False))
+    
+    #graficar a distribuição de vendas por país
+    import plotly.express as px
+    fig = px.bar(df.groupby("Country")["Price"].sum().reset_index().sort_values(by="Price", ascending=False)
+                 , x="Country", y="Price", title="Distribuição de Vendas por País (Amostragem)",
+                 color="Price", color_continuous_scale=px.colors.sequential.Plasma)
+    
+    # Exibir a distribuição de vendas por país
+    st.plotly_chart(fig)
+
+    st.markdown("### 📊 Análise de Quantidade e Preço por País")  
+    # Agrupar por país e calcular a soma de quantidade e preço
+    vendas_pais_quantidade = df.groupby("Country")["Quantity"].sum().reset_index()
+    vendas_pais_preco = df.groupby("Country")["Price"].sum().reset_index()
+    vendas_pais_quantidade = vendas_pais_quantidade.sort_values(by="Quantity", ascending=False)
+    vendas_pais_preco = vendas_pais_preco.sort_values(by="Price", ascending=False)
+    st.dataframe(vendas_pais_quantidade)
+    st.dataframe(vendas_pais_preco)
+    # Gráfico de barras da quantidade de vendas por país
+    fig_quantidade = px.bar(vendas_pais_quantidade, x="Country", y="Quantity", title="Quantidade de Vendas por País (Amostragem)",
+                            color="Quantity", color_continuous_scale=px.colors.sequential.Viridis)
+
+    st.plotly_chart(fig_quantidade)
+    
+    
     # stockcod por país
     vendas_pais_stockcode = df.groupby("Country")["StockCode"].nunique().reset_index()
     vendas_pais_stockcode = vendas_pais_stockcode.sort_values(by="StockCode", ascending=False)
@@ -1187,20 +1140,54 @@ def q3_etapa1():
 
     # Exibir no Streamlit
     st.pyplot(fig_price)
-
-    st.subheader("Resumo da Análise Descritiva ")
-    
-    st.markdown("""
-    A análise do Q-Q Plot para o **preço dos produtos** revela uma clara assimetria à direita, indicando que a distribuição dos valores não é normal. Observa-se a presença de diversos **outliers de alta magnitude**, com uma curvatura acentuada no gráfico e dispersão evidente dos pontos em relação à linha teórica de normalidade. Isso sugere uma elevada **variabilidade nos preços**, com alguns produtos muito caros distorcendo a média e influenciando fortemente as estatísticas descritivas tradicionais.
-
-    Da mesma forma, a **quantidade de produtos vendidos por país** também não apresenta distribuição normal. O gráfico evidencia uma forte **concentração de países com baixas vendas** e um pequeno número de países com volumes expressivamente maiores. A linha teórica de normalidade é ultrapassada nos extremos, reforçando a ideia de uma **distribuição assimétrica com cauda pesada**, o que indica que testes estatísticos não paramétricos são mais adequados para esse tipo de dado.
-    """)
-
-            
-def q3_etapa2():
-    st.header("Q3 - b) ANOVA entre Países")
-    st.info("Apresente F, p-valor e interprete o teste.")
         
+    
+    #qplot do preço por país
+
+    # Exibir a quantidade de vendas por país
+   # st.markdown("### 📊 Quantidade de Vendas por País")
+   # st.dataframe(df.groupby("Country")["Quantity"].sum().reset_index())
+    
+    # Gráfico de barras da quantidade de vendas por país
+    #fig = px.bar(df, x="Country", y="Quantity", title="Quantidade de Vendas por País",
+    #             color="Quantity", color_continuous_scale=px.colors.sequential.Viridis)
+    #st.plotly_chart(fig)
+    
+    # medias de quantidade de produtos vendidos por país
+    #st.markdown("### 📊 Média de Quantidade Vendida por País")
+    #st.dataframe(df.groupby("Country")["Quantity"].mean().reset_index())
+    # Gráfico de barras da média de quantidade vendida por país
+    #fig = px.bar(df, x="Country", y="Quantity", title="Média de Quantidade Vendida por País",
+    #             color="Quantity", color_continuous_scale=px.colors.sequential.Cividis)
+    #st.plotly_chart(fig)
+    
+
+    # Exibir a média de preço por país
+    #st.markdown("### 📊 Média de Preço por País")
+   # st.dataframe(df.groupby("Country")["Price"].mean().reset_index())
+    # Gráfico de barras da média de preço por país
+    #fig = px.bar(df, x="Country", y="Price", title="Média de Preço por País",
+    #             color="Price", color_continuous_scale=px.colors.sequential.Inferno)
+    #st.plotly_chart(fig)
+    
+
+
+    # Exibir a quantidade de vendas por categoria
+    #st.markdown("### 📊 Quantidade de Vendas por Categoria")
+    #st.dataframe(df.groupby("Category")["Quantity"].sum().reset_index())
+    # Gráfico de barras da quantidade de vendas por categoria
+    #fig = px.bar(df, x="Category", y="Quantity", title="Quantidade de Vendas por Categoria",
+    #             color="Quantity", color_continuous_scale=px.colors.sequential.Viridis)
+    #st.plotly_chart(fig)
+
+
+
+
+
+def q3_etapa2():
+    st.subheader("🌍 Q3 - b) ANOVA entre Países")
+    st.info("Apresente F, p-valor e interprete o teste.")
+    
     import pandas as pd
     import statsmodels.api as sm
     from statsmodels.formula.api import ols
@@ -1219,7 +1206,7 @@ def q3_etapa2():
     # Exemplo: carregando o DataFrame (substitua pelo seu)
     # df = pd.read_excel("planilha_combinada_amostrada.xlsx")
 
-    st.subheader("ANOVA - Comparação de Médias por País")
+    st.header("📊 ANOVA - Comparação de Médias por País")
 
     # ANOVA para Quantity ~ Country
     modelo_q = smf.ols("Quantity ~ C(Country)", data=df3).fit()
@@ -1242,9 +1229,7 @@ def q3_etapa2():
         st.info(f"Resultado: influência **significativa** (F = {f_q:.2f}, p = {p_q:.4f})")
     else:
         st.warning(f"Resultado: **sem influência significativa** (F = {f_q:.2f}, p = {p_q:.4f})")
-        
-   
-        
+
     # Resultado Price
     st.subheader("🔹 ANOVA: Price por País")
     st.dataframe(anova_p)
@@ -1258,27 +1243,6 @@ def q3_etapa2():
         st.info(f"Resultado: influência **significativa** (F = {f_p:.2f}, p = {p_p:.4f})")
     else:
         st.warning(f"Resultado: **sem influência significativa** (F = {f_p:.2f}, p = {p_p:.4f})")
-        
-        
-        
-    st.markdown("""
-    ### Interpretação do Resultado - Comparação de Médias por País
-
-    A análise de variância (ANOVA) foi utilizada para verificar se as médias de **quantidade de produtos vendidos** e de **preço dos produtos** diferem significativamente entre os países.
-
-    🔹 **Quantity por País**  
-    - Estatística F = **131.59**  
-    - Valor-p = **< 0.001**  
-    ➡️ **Resultado:** Evidência estatística muito forte de que a quantidade média de produtos vendidos varia significativamente entre os países. Isso indica que o país de venda exerce uma **influência substancial** nas quantidades comercializadas.
-
-    🔹 **Price por País**  
-    - Estatística F = **5.95**  
-    - Valor-p = **< 0.001**  
-    ➡️ **Resultado:** Há uma **influência estatisticamente significativa** do país sobre os preços médios praticados. Embora o efeito seja menos intenso que o observado para quantidade, ainda assim é estatisticamente relevante.
-
-    Esses resultados indicam que tanto o volume quanto o preço de produtos variam de forma significativa entre os países, reforçando a importância de considerar o fator geográfico em análises comerciais e estratégias de mercado.
-    """)
-       
     
 
 def verificar_pressupostos_anova(df, var_resposta, fator_categ='Country'):
@@ -1298,11 +1262,11 @@ def verificar_pressupostos_anova(df, var_resposta, fator_categ='Country'):
     import statsmodels.formula.api as smf
     import statsmodels.api as sm
     from statsmodels.stats.diagnostic import het_breuschpagan
-    from scipy.stats import shapiro, zscore, kstest
+    from scipy.stats import shapiro
     import matplotlib.pyplot as plt
     import seaborn as sns
 
-    st.subheader(f"Verificação dos Pressupostos da ANOVA - {var_resposta} ~ {fator_categ}")
+    st.header(f"🔍 Verificação dos Pressupostos da ANOVA - {var_resposta} ~ {fator_categ}")
 
     # Ajustar modelo
     formula = f"{var_resposta} ~ C({fator_categ})"
@@ -1313,10 +1277,11 @@ def verificar_pressupostos_anova(df, var_resposta, fator_categ='Country'):
     violou_normalidade = False
     violou_homocedasticidade = False            
 
+    # 1️⃣ Normalidade dos resíduos
+    st.subheader("1️⃣ Normalidade dos Resíduos (Q-Q Plot + Shapiro-Wilk)")
+ # 2️⃣ Homocedasticidade com Breusch-Pagan
+    st.subheader("2️⃣ Homocedasticidade (Breusch-Pagan + Gráfico de Resíduos)")
     
-    #  Normalidade dos resíduos
-    st.subheader("1️ Normalidade dos Resíduos (Q-Q Plot + Kolmogorov-Smirnov)")
-
     # Criar um container estreito com colunas
     col1, col2, col3 = st.columns([1, 2, 1])  # centraliza
 
@@ -1326,16 +1291,13 @@ def verificar_pressupostos_anova(df, var_resposta, fator_categ='Country'):
         ax.set_title("Q-Q Plot dos Resíduos", fontsize=10)
         st.pyplot(fig)
 
-    # Aplicar o teste Kolmogorov-Smirnov com resíduos padronizados
-    residuos_padronizados = zscore(residuos)
-    ks_stat, ks_p = kstest(residuos_padronizados, 'norm')
-
-    if ks_p < 0.05:
+    shapiro_stat, shapiro_p = shapiro(residuos)
+    if shapiro_p < 0.05:
         violou_normalidade = True
-        st.warning("Essa versão evita o alerta do Shapiro para N > 5000 e é mais apropriada para grandes amostras.")
-        st.warning(f"❗ Kolmogorov-Smirnov indica violação da normalidade (U)(p = {ks_p:.4f})")
+        st.warning(f"❗ Shapiro-Wilk indica violação da normalidade (p = {shapiro_p:.4f})")
     else:
-        st.success(f"✅ Resíduos seguem distribuição normal (Kolmogorov-Smirnov p = {ks_p:.4f})")
+        st.success(f"✅ Resíduos seguem distribuição normal (Shapiro-Wilk p = {shapiro_p:.4f})")
+
    
 
     # Layout com colunas para centralizar e limitar largura
@@ -1365,9 +1327,9 @@ def verificar_pressupostos_anova(df, var_resposta, fator_categ='Country'):
         st.success("✅ Homocedasticidade verificada (p ≥ 0.05)")
 
     # Diagnóstico final
-    st.subheader("Diagnóstico Final dos Pressupostos")
+    st.subheader("🚨 Diagnóstico Final dos Pressupostos")
     if violou_normalidade or violou_homocedasticidade:
-        st.error("⚠️ Um ou mais pressupostos da ANOVA foram violados. Considere usar testes não paramétricos : teste de Kruskal-Wallis.")
+        st.error("⚠️ Um ou mais pressupostos da ANOVA foram violados. Considere usar ANOVA de Welch ou teste de Kruskal-Wallis.")
     else:
         st.success("✅ Todos os pressupostos foram atendidos. A ANOVA é apropriada.")
 
@@ -1375,7 +1337,7 @@ def verificar_pressupostos_anova(df, var_resposta, fator_categ='Country'):
 
 
 def q3_etapa3():
-    st.header("Q3 - c) Ajustes no Modelo")    
+    st.subheader("🌍 Q3 - c) Ajustes no Modelo")    
     st.info("Verifique normalidade, homocedasticidade   etc.")
     
     # recuperar df3 da sessão do streamlit
@@ -1392,7 +1354,7 @@ def q3_etapa3():
         # aplicar  Kruskal-Wallis
     from scipy.stats import kruskal
 
-    st.subheader("Q3 - c) Teste Kruskal-Wallis")
+    st.subheader("🌍 Q3 - c) Teste Kruskal-Wallis")
     st.info("Teste não paramétrico para comparar medianas entre grupos.")
     anchor = "teste_kruskal_wallis"
     st.markdown(f"<a id='{anchor}'></a>", unsafe_allow_html=True)
@@ -1406,12 +1368,12 @@ def q3_etapa3():
     kruskal_price = kruskal(*grupos_price)
 
     # Exibir os resultados
-    st.markdown("### Teste Kruskal-Wallis - Comparação de Medianas")
+    st.markdown("### 📊 Teste Kruskal-Wallis - Comparação de Medianas")
     st.write(f"🔬 Kruskal-Wallis (Quantidade): H = {kruskal_quantity.statistic:.4f}, p = {kruskal_quantity.pvalue:.4f}")
     st.write(f"🔬 Kruskal-Wallis (Preço): H = {kruskal_price.statistic:.4f}, p = {kruskal_price.pvalue:.4f}")
 
     # Análise automática dos resultados
-    st.markdown("### Análise Comparativa")
+    st.markdown("### 🧠 Análise Comparativa")
 
     # Interpretação Quantity
     if kruskal_quantity.pvalue < 0.05:
@@ -1430,7 +1392,7 @@ def q3_etapa3():
 
 
 def q3_etapa4():
-    st.header("Q3 - d) Interpretação e Decisão")
+    st.subheader("🌍 Q3 - d) Interpretação e Decisão")
     
     
     from scipy.stats import kruskal
@@ -1448,12 +1410,12 @@ def q3_etapa4():
     kruskal_quantity = kruskal(*grupos_quantity)
     kruskal_price = kruskal(*grupos_price)
 
-    st.markdown("### Teste Kruskal-Wallis - Comparação de Medianas")
+    st.markdown("### 📊 Teste Kruskal-Wallis - Comparação de Medianas")
     st.write(f"🔬 Kruskal-Wallis (Quantidade): H = {kruskal_quantity.statistic:.4f}, p = {kruskal_quantity.pvalue:.4f}")
     st.write(f"🔬 Kruskal-Wallis (Preço): H = {kruskal_price.statistic:.4f}, p = {kruskal_price.pvalue:.4f}")
 
     st.markdown("""
-    ### Análise dos Resultados
+    ### 📝 Análise dos Resultados – Teste de Kruskal-Wallis
 
     Nesta etapa, foi aplicado o **teste de Kruskal-Wallis**, uma técnica não paramétrica utilizada para comparar as **medianas** de múltiplos grupos independentes, neste caso, os diferentes **países**.
 
@@ -1477,7 +1439,7 @@ def q3_etapa4():
 # 🔧 Funções - Questão 4
 # =============================
 def q4_etapa1():
-    st.header("Q4 - a) Discussão do Problema")
+    st.subheader("Q4 - a) Discussão do Problema")
     st.info("Importância de prever reclamações no varejo.")
 
 def q4_etapa2():
@@ -1660,7 +1622,7 @@ def q4_etapa2():
     
 
 def q4_etapa3():
-    st.header("Q4 - c) Seleção de Modelos")
+    st.subheader("Q4 - c) Seleção de Modelos")
     st.info("Compare Logistic, Árvores, Random Forest, XGBoost.")
     
     #recuperar df4 da sessão do streamlit
@@ -1823,7 +1785,7 @@ def q4_etapa3():
 
 
 def q4_etapa4():
-    st.header("Q4 - d) SHAP e Explicabilidade")
+    st.subheader("Q4 - d) SHAP e Explicabilidade")
     st.info("Use SHAP para entender a influência das variáveis.")
     
 
@@ -1914,7 +1876,7 @@ def q4_etapa4():
 
 
 def q4_etapa5():
-    st.header("Q4 - e) K-Means / DBSCAN")
+    st.subheader("Q4 - e) K-Means / DBSCAN")
     st.info("Clusterização e detecção de outliers por perfil.")
         
  
@@ -2054,7 +2016,7 @@ def q4_etapa5():
     """)
 
 def q4_etapa6():
-    st.header("Q4 - f) Decisão Estratégica")
+    st.subheader("Q4 - f) Decisão Estratégica")
     st.info("Sugira melhorias com base nos insights obtidos.")
     
     st.markdown("### Decisões Estratégicas e Implicações para o Negócio")
@@ -2100,20 +2062,7 @@ def q4_etapa6():
 # =============================
 st.set_page_config(page_title="📊 Prova Final - Análise Estatística", layout="wide")
 st.title("📚 Prova Final - Análise Estatística de Dados e Informações")
-st.markdown("Desenvolvido por: [Silvia Laryssa Branco da Silva] &nbsp;&nbsp;&nbsp;&nbsp;📅 Julho 2025")
-st.markdown("""
-### 📄 Acesse a prova final
-
-Clique no link abaixo para visualizar e interagir com o painel da prova final:
-
-🔗 [👉 AIED - Prova Final: ](https://aiedprovafinal.streamlit.app/)
-""")
-st.markdown("""
-### 📊 Descrição do App
-O aplicativo tem como objetivo fornecer uma plataforma interativa para a realização da prova final de Análise Estatística de Dados e Informações. Os usuários podem explorar diferentes técnicas estatísticas, visualizar resultados e obter insights a partir de dados simulados.
-
-""")
-
+st.markdown("👩‍🎓 Desenvolvido por: [Silvia Laryssa Branco da Silva] &nbsp;&nbsp;&nbsp;&nbsp;📅 Julho 2025")
 
 # MENU LATERAL
 with st.sidebar:
@@ -2121,7 +2070,7 @@ with st.sidebar:
     mostrar_todas = st.checkbox("✅ Mostrar todas as questões", value=False)
 
     # Questão 1
-    with st.expander("🏨 Questão 1 - Regressão Linear (Imóveis)", expanded=mostrar_todas):
+    with st.expander(" Questão 1 - Regressão Linear (Imóveis)", expanded=mostrar_todas):
         show_q1_e1 = mostrar_todas or st.checkbox("1️ Análise Descritiva", key="q1e1")
         show_q1_e2 = mostrar_todas or st.checkbox("2️ Modelo de Regressão Linear", key="q1e2")
         show_q1_e3 = mostrar_todas or st.checkbox("3️ Interpretação dos Resultados", key="q1e3")
@@ -2136,14 +2085,14 @@ with st.sidebar:
         show_q2_e4 = mostrar_todas or st.checkbox("d) Justificativa do Método", key="q2e4")
 
     # Questão 3
-    with st.expander("🏨 Questão 3 - ANOVA (Vendas por País)", expanded=mostrar_todas):
+    with st.expander("🌍 Questão 3 - ANOVA (Vendas por País)", expanded=mostrar_todas):
         show_q3_e1 = mostrar_todas or st.checkbox("a) Análise Descritiva", key="q3e1")
         show_q3_e2 = mostrar_todas or st.checkbox("b) ANOVA entre Países", key="q3e2")
         show_q3_e3 = mostrar_todas or st.checkbox("c) Ajustes no Modelo", key="q3e3")
         show_q3_e4 = mostrar_todas or st.checkbox("d) Interpretação e Decisão", key="q3e4")
 
     # Questão 4
-    with st.expander("🏨 Questão 4 - Reclamações de Clientes", expanded=mostrar_todas):
+    with st.expander("🛒 Questão 4 - Reclamações de Clientes", expanded=mostrar_todas):
         show_q4_e1 = mostrar_todas or st.checkbox("a) Discussão do Problema", key="q4e1")
         show_q4_e2 = mostrar_todas or st.checkbox("b) Análise Descritiva", key="q4e2")
         show_q4_e3 = mostrar_todas or st.checkbox("c) Seleção de Modelos", key="q4e3")
@@ -2180,7 +2129,7 @@ if show_q4_e6: q4_etapa6()
 
 # Rodapé
 st.markdown("---")
-st.markdown("🧮 **Prova Final - AEDI - PPCA - UNB**  \n👩‍🏫 Professor(a): João Gabriel de Moraes Souza  \n📊 Universidade de Brasilia")
+st.markdown("🧮 **Prova Final - AEDI - PPCA - UNB**  \n👩‍🏫 Professor(a): [João Gabriel de Moraes Souza]  \n📊 Universidade de Brasilia")
 
 st.markdown("### Referências Bibliográficas")
 
