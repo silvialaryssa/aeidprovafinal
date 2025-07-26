@@ -2155,6 +2155,21 @@ if show_q4_e6: q4_etapa6()
 
 # Rodapé
 st.markdown("---")
-st.markdown("🧮 **Prova Final - Ciência de Dados Aplicada**  \n👩‍🏫 Professor(a): [Nome do Professor]  \n📊 Universidade XYZ - 2025")
+st.markdown("🧮 **Prova Final - Ciência de Dados Aplicada**  \n👩‍🏫 Professor(a): [João Gabriel de Moraes Souza]  \n📊 Universidade XYZ - 2025")
 
+st.markdown("### 📚 Referências Bibliográficas")
+
+st.markdown("""
+- CALLEGARI-JACQUES, Sidia Maria. *Bioestatística: Princípios e Aplicações*. Porto Alegre: Artmed, 2007.
+
+- FIELD, Andy. *Descobrindo a Estatística Usando o SPSS*. Tradução de Regina Machado. Porto Alegre: Artmed, 2009.
+
+- HUFF, Darrell. *Como Mentir com Estatística*. São Paulo: Edições Bookman, 2009.
+
+- MAGALHÃES, Marcos Nascimento; LIMA, Antonio Carlos Pedroso de. *Noções de Probabilidade e Estatística*. São Paulo: Edusp, 2004.
+
+- GÉRON, Aurélien. *Mãos à Obra: Aprendizado de Máquina com Scikit-Learn, Keras e TensorFlow*. Tradução de Pedro Jatobá. Rio de Janeiro: Alta Books, 2021.
+
+- GRUS, Joel. *Data Science do Zero: Noções Fundamentais com Python*. Tradução de Juliana D. Ferreira. Rio de Janeiro: Alta Books, 2021.
+""")
 
